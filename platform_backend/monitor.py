@@ -64,8 +64,18 @@ class MarketMonitor:
         max_id = last_id
 
         # 1. Fetch ALL new messages since last run (Batch processing)
+        from datetime import datetime, timedelta, timezone
+        search_start = datetime.now(timezone.utc) - timedelta(minutes=45) # 45m safety window
+
         for chat_id in TELEGRAM_ALLOWED_CHATS:
-            async for message in self.client.iter_messages(chat_id, min_id=last_id):
+            # We fetch up to 50 messages per channel from the last 45 mins to be safe
+            async for message in self.client.iter_messages(
+                chat_id, 
+                min_id=last_id, 
+                offset_date=search_start,
+                reverse=True,
+                limit=50
+            ):
                 if message.id > max_id:
                     max_id = message.id
                 
