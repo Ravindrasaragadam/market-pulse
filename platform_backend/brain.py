@@ -272,15 +272,25 @@ You are the 'Market Pulse' India Market Analyst. Think like an experienced human
 ### MISSION:
 Provide a structured India market report that helps investors make informed decisions:
 
-1. **Stock-Level Alerts (3-5 specific insights)**: For each alert, follow this format:
-   - **Event/News**: What happened (e.g., "Surge in oil imports", "IT Q4 results expected Friday")
-   - **Analysis**: Why this matters and what it signals (e.g., "This can trigger price spikes in next quarter")
-   - **Related Stocks**: Specific stocks that will be impacted (e.g., "OIL, ONGC, RELIANCE")
-   - **Action**: Buy/Sell/Hold with reasoning
+1. **Stock-Level Alerts**: Provide 3-5 specific stock-level alerts in this format:
+   - Stock symbol, full company name
+   - Signal: BUY/SELL/HOLD with clear reasoning
+   - Focus area tags (sector/theme)
+   - Confidence level (0-1)
 
-   Example format:
-   - **Surge in oil imports**: This can trigger price spikes in next quarter as well. Related stocks: OIL, ONGC, RELIANCE. Action: Consider long positions on oil stocks.
-   - **IT industries Q4 results**: Negative signals for service companies due to AI boom. Related stocks: TCS, INFY, WIPRO. Action: Reduce exposure to traditional IT services.
+   ALSO include a JSON array at the end of your response:
+   ```json
+   [
+     {
+       "symbol": "RELIANCE",
+       "stock_name": "Reliance Industries Ltd",
+       "signal": "BUY",
+       "reasoning": "Oil price surge expected due to OPEC+ cuts, refining margins expanding",
+       "focus_areas": ["Energy", "Oil", "Large Cap"],
+       "confidence": 0.85
+     }
+   ]
+   ```
 
 2. **Market Trends**: Higher-level market psychology and sentiment analysis
 3. **Focus Area Analysis ({focus_keywords})**: Deep analysis of focus sectors with opportunities and risks. Pay special attention to high-priority focus areas.
@@ -336,15 +346,25 @@ You are the 'Market Pulse' US/International Market Analyst. Think like an experi
 ### MISSION:
 Provide a structured US market report that helps investors make informed decisions:
 
-1. **Stock-Level Alerts (3-5 specific insights)**: For each alert, follow this format:
-   - **Event/News**: What happened (e.g., "Fed rate hike concerns", "Tech sector earnings beat")
-   - **Analysis**: Why this matters and what it signals (e.g., "This can trigger rotation to defensive stocks")
-   - **Related Stocks**: Specific stocks that will be impacted (e.g., "AAPL, MSFT, NVDA")
-   - **Action**: Buy/Sell/Hold with reasoning
+1. **Stock-Level Alerts**: Provide 3-5 specific stock-level alerts in this format:
+   - Stock symbol, full company name
+   - Signal: BUY/SELL/HOLD with clear reasoning
+   - Focus area tags (sector/theme)
+   - Confidence level (0-1)
 
-   Example format:
-   - **Biotech AI boom**: Raising boom in AI-driven biotech sector. Related stocks: JDH, ASIH, ASCH. Action: Consider positions in AI biotech leaders.
-   - **Fed rate hike concerns**: Rising yields impacting growth stocks. Related stocks: TSLA, NVDA, AMD. Action: Reduce exposure to high-growth tech stocks temporarily.
+   ALSO include a JSON array at the end of your response:
+   ```json
+   [
+     {
+       "symbol": "AAPL",
+       "stock_name": "Apple Inc",
+       "signal": "BUY",
+       "reasoning": "Strong iPhone 16 demand and AI integration timeline boosting sentiment",
+       "focus_areas": ["Technology", "Consumer Electronics", "AI Theme"],
+       "confidence": 0.82
+     }
+   ]
+   ```
 
 2. **Market Trends**: Higher-level market psychology and sentiment analysis
 3. **Focus Area Analysis ({focus_keywords})**: Deep analysis of focus sectors with opportunities and risks. Pay special attention to high-priority focus areas.
@@ -474,13 +494,39 @@ Provide ONLY the Telegram message, no other text.
 """
         return prompt
     
-    def extract_stock_signals(self, analysis_text):
+    def extract_stock_signals(self, analysis_text, focus_areas=None):
         """Extract individual stock signals from the full analysis text."""
         import re
+        import json
         
         signals = []
-        # Pattern to match stock symbols with signals
-        # This is a simple pattern - can be improved with more sophisticated parsing
+        
+        # First, try to find JSON formatted signals
+        # Look for patterns like ```json ... ``` or just [...]
+        json_match = re.search(r'```json\s*(\[.*?\])\s*```', analysis_text, re.DOTALL)
+        if not json_match:
+            json_match = re.search(r'(\[\s*\{.*?\}\s*\])', analysis_text, re.DOTALL)
+        
+        if json_match:
+            try:
+                json_str = json_match.group(1)
+                parsed_signals = json.loads(json_str)
+                if isinstance(parsed_signals, list):
+                    for signal in parsed_signals:
+                        if 'symbol' in signal and 'signal' in signal:
+                            signals.append({
+                                'symbol': signal.get('symbol'),
+                                'stock_name': signal.get('stock_name', ''),
+                                'signal': signal.get('signal', 'NEUTRAL').upper(),
+                                'reasoning': signal.get('reasoning', signal.get('reason', '')),
+                                'focus_areas': signal.get('focus_areas', signal.get('tags', [])),
+                                'confidence': signal.get('confidence', 0.7)
+                            })
+                    return signals
+            except json.JSONDecodeError:
+                pass  # Fall back to text parsing
+        
+        # Text-based parsing as fallback
         lines = analysis_text.split('\n')
         
         for line in lines:
@@ -491,11 +537,21 @@ Provide ONLY the Telegram message, no other text.
                 signal = match.group(2).upper()
                 change = match.group(3)
                 
+                # Try to extract tags/focus areas from line
+                focus_tags = []
+                if focus_areas:
+                    for fa in focus_areas:
+                        keyword = fa.get('keyword', '')
+                        if keyword and keyword.lower() in line.lower():
+                            focus_tags.append(keyword)
+                
                 signals.append({
                     'symbol': symbol,
                     'signal': signal,
                     'change': change,
-                    'reasoning': line.strip()
+                    'reasoning': line.strip(),
+                    'focus_areas': focus_tags[:3],  # Max 3 tags
+                    'confidence': 0.7
                 })
         
         return signals

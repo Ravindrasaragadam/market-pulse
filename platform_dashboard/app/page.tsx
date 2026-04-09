@@ -7,10 +7,24 @@ import TradingViewWidget from "@/components/TradingViewWidget";
 import StockGrid from "@/components/StockGrid";
 import AISummary from "@/components/AISummary";
 import StockAlerts from "@/components/StockAlerts";
+import StockSearch from "@/components/StockSearch";
+
+interface WatchlistStock {
+  symbol: string;
+  name: string;
+  sector: string;
+  marketCapCategory: string;
+  priority: number;
+  latestSignal: string;
+  latestReason: string;
+  alertCount: number;
+}
 
 export default function Dashboard() {
   const [alerts, setAlerts] = useState<any[]>([]);
   const [stocks, setStocks] = useState<any[]>([]);
+  const [watchlist, setWatchlist] = useState<WatchlistStock[]>([]);
+  const [watchlistSymbols, setWatchlistSymbols] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<string>("ALL");
@@ -18,6 +32,7 @@ export default function Dashboard() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [market, setMarket] = useState<"INDIA" | "US">("INDIA");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [showSearch, setShowSearch] = useState(false);
 
   useEffect(() => {
     async function fetchAlerts() {
@@ -47,39 +62,43 @@ export default function Dashboard() {
     fetchAlerts();
   }, []);
 
-  // Fetch stock signals from database
-  useEffect(() => {
-    async function fetchStockSignals() {
-      try {
-        const { data, error: sbError } = await supabase
-          .from("alerts")
-          .select("*")
-          .not("stock_symbol", "is", null)
-          .order("created_at", { ascending: false })
-          .limit(50);
+  // Fetch user's watchlist
+  const fetchWatchlist = async () => {
+    try {
+      const response = await fetch('/api/watchlist');
+      const data = await response.json();
+      
+      if (data.watchlist) {
+        setWatchlist(data.watchlist);
+        setWatchlistSymbols(data.watchlist.map((item: WatchlistStock) => item.symbol));
         
-        if (sbError) throw sbError;
-
-        // Transform database alerts to stock format
-        const stockData = (data || [])
-          .filter(alert => alert.stock_symbol)
-          .map(alert => ({
-            symbol: alert.stock_symbol,
-            price: alert.metadata?.price || 0,
-            change: alert.metadata?.change || 0,
-            signal: alert.signal_type || "NEUTRAL",
-            sparklineData: alert.growth_data?.sparkline || [],
-            fundamentals: alert.fundamentals || {},
-            growth: alert.growth_data || {}
-          }));
-
+        // Transform watchlist to stock format for StockGrid
+        const stockData = data.watchlist.map((item: WatchlistStock) => ({
+          symbol: item.symbol,
+          name: item.name,
+          price: 0, // Will be fetched from Yahoo/real-time API
+          change: 0,
+          signal: item.latestSignal || "NEUTRAL",
+          sector: item.sector,
+          alertCount: item.alertCount
+        }));
+        
         setStocks(stockData);
-      } catch (err: any) {
-        console.error("Stock Fetch Error:", err);
       }
+    } catch (err) {
+      console.error("Watchlist fetch error:", err);
     }
-    fetchStockSignals();
+  };
+
+  useEffect(() => {
+    fetchWatchlist();
   }, []);
+
+  const handleAddToWatchlist = (symbol: string) => {
+    // Refresh watchlist after adding
+    fetchWatchlist();
+    setShowSearch(false);
+  };
   
   const filteredAlerts = alerts.filter(alert => {
     if (filterType === "ALL") return true;
@@ -160,6 +179,25 @@ export default function Dashboard() {
             🔍
           </span>
         </div>
+
+        {/* Add Stock Button */}
+        <div className="mt-4">
+          <button
+            onClick={() => setShowSearch(!showSearch)}
+            className="bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+          >
+            {showSearch ? '✕ Close' : '+ Add Stock to Watchlist'}
+          </button>
+          
+          {showSearch && (
+            <div className="mt-3">
+              <StockSearch 
+                onAddToWatchlist={handleAddToWatchlist}
+                existingWatchlist={watchlistSymbols}
+              />
+            </div>
+          )}
+        </div>
       </header>
 
       {/* TradingView Widget at top */}
@@ -169,10 +207,33 @@ export default function Dashboard() {
 
       {/* Stock Grid - Main Feature */}
       <div className="mb-8">
-        <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
-          📈 {market === "INDIA" ? "Indian" : "US"} Watchlist Stocks
-        </h2>
-        <StockGrid stocks={filteredStocks} />
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-semibold flex items-center gap-2">
+            📈 My Watchlist 
+            <span className="text-sm font-normal text-slate-400">
+              ({watchlist.length} stocks)
+            </span>
+          </h2>
+          {watchlist.length === 0 && (
+            <p className="text-sm text-slate-400">
+              Search and add stocks to build your watchlist
+            </p>
+          )}
+        </div>
+        
+        {watchlist.length === 0 ? (
+          <div className="bg-slate-900 border border-slate-800 p-8 rounded-xl text-center">
+            <p className="text-slate-400 mb-4">Your watchlist is empty</p>
+            <button
+              onClick={() => setShowSearch(true)}
+              className="bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              + Add Your First Stock
+            </button>
+          </div>
+        ) : (
+          <StockGrid stocks={filteredStocks} />
+        )}
       </div>
 
       {/* Stock-Level Alerts */}

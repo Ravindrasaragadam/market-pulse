@@ -178,7 +178,7 @@ class MarketMonitor:
                 self.db.save_alert("INDIA_MARKET", "INDIA_REPORT", india_analysis)
                 
                 # Extract and save individual stock signals
-                stock_signals = self.analyzer.extract_stock_signals(india_analysis)
+                stock_signals = self.analyzer.extract_stock_signals(india_analysis, dynamic_focus_areas)
                 for signal in stock_signals:
                     # Fetch real fundamentals and historical data
                     fundamentals = self.researcher.get_stock_fundamentals(signal['symbol'])
@@ -187,10 +187,14 @@ class MarketMonitor:
                     self.db.save_alert(
                         symbol="INDIA_STOCK",
                         signal=signal['signal'],
-                        reasoning=signal['reasoning'],
+                        reasoning=signal.get('reasoning', signal.get('reason', '')),
                         stock_symbol=signal['symbol'],
-                        signal_strength=0.8 if signal['signal'] == 'BUY' else 0.2 if signal['signal'] == 'SELL' else 0.5,
-                        metadata={'change': signal.get('change', 0)},
+                        signal_strength=signal.get('confidence', 0.7),
+                        metadata={
+                            'change': signal.get('change', 0),
+                            'focus_areas': signal.get('focus_areas', signal.get('tags', [])),
+                            'stock_name': signal.get('stock_name', '')
+                        },
                         fundamentals=fundamentals,
                         growth_data=historical_data
                     )
@@ -203,7 +207,7 @@ class MarketMonitor:
                 self.db.save_alert("US_MARKET", "US_REPORT", us_analysis)
                 
                 # Extract and save individual stock signals
-                stock_signals = self.analyzer.extract_stock_signals(us_analysis)
+                stock_signals = self.analyzer.extract_stock_signals(us_analysis, dynamic_focus_areas)
                 for signal in stock_signals:
                     # Fetch real fundamentals and historical data
                     fundamentals = self.researcher.get_stock_fundamentals(signal['symbol'])
@@ -212,10 +216,14 @@ class MarketMonitor:
                     self.db.save_alert(
                         symbol="US_STOCK",
                         signal=signal['signal'],
-                        reasoning=signal['reasoning'],
+                        reasoning=signal.get('reasoning', signal.get('reason', '')),
                         stock_symbol=signal['symbol'],
-                        signal_strength=0.8 if signal['signal'] == 'BUY' else 0.2 if signal['signal'] == 'SELL' else 0.5,
-                        metadata={'change': signal.get('change', 0)},
+                        signal_strength=signal.get('confidence', 0.7),
+                        metadata={
+                            'change': signal.get('change', 0),
+                            'focus_areas': signal.get('focus_areas', signal.get('tags', [])),
+                            'stock_name': signal.get('stock_name', '')
+                        },
                         fundamentals=fundamentals,
                         growth_data=historical_data
                     )
