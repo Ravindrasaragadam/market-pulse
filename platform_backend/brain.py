@@ -137,9 +137,13 @@ Provide a 3-part intelligence report based on the provided data:
     
     def _build_india_prompt(self, data):
         moves_str = "\n".join([f"- {m['symbol']}: {m['change']}% at ${m['price']}" for m in data['moves']])
-        recent_news_str = "\n".join([f"- {n['headline']} ({n['source']}) | Link: {n['link']}" for n in data.get('recent_news', [])])
-        focus_str = "\n".join([f"- {n['headline']} ({n['source']}) | Link: {n['link']}" for n in data.get('focus_news', [])])
-        commodities_str = "\n".join([f"- {n['headline']} ({n['source']}) | Link: {n['link']}" for n in data.get('commodities_news', [])])
+        recent_news_str = "\n".join([f"- [{i+1}] {n['headline']} ({n['source']})" for i, n in enumerate(data.get('recent_news', []))])
+        focus_str = "\n".join([f"- [{i+1}] {n['headline']} ({n['source']})" for i, n in enumerate(data.get('focus_news', []))])
+        commodities_str = "\n".join([f"- [{i+1}] {n['headline']} ({n['source']})" for i, n in enumerate(data.get('commodities_news', []))])
+        
+        # Collect all references
+        all_news = data.get('recent_news', []) + data.get('focus_news', []) + data.get('commodities_news', [])
+        references = "\n".join([f"[{i+1}] {n['link']}" for i, n in enumerate(all_news)])
         
         prompt = f"""
 You are the 'Market Pulse' India Market Analyst. Your mission is to provide a focused India market report.
@@ -154,12 +158,16 @@ Provide a structured India market report with the following sections:
 5. **Special/Interesting Patterns**: Identify any unusual patterns or trends from the data
 6. **Watchlist Updates**: Brief updates on watchlist stocks
 
-### IMPORTANT:
-- Include source URLs prominently for all news items
-- Analyze patterns and trends from the context, not just report headlines
-- Look for unusual market behavior or interesting correlations
-- Format with clear section headers and bullet points
-- Keep each section concise but informative
+### CRITICAL RULES:
+- ONLY use data provided in the sections below. Do NOT hallucinate or invent any market data, index movements, or statistics.
+- Do NOT report on DJIA, S&P 500, Nasdaq, or any other indices unless they are explicitly mentioned in the news.
+- Do NOT make up percentage changes or market movements.
+- Use numbered references [1], [2], etc. in the text for news items.
+- List all reference URLs at the end under 'References' section.
+- Analyze patterns and trends from the context, not just report headlines.
+- Look for unusual market behavior or interesting correlations.
+- Format with clear section headers and bullet points.
+- Keep each section concise but informative.
 
 ---
 
@@ -174,13 +182,20 @@ Provide a structured India market report with the following sections:
 
 ### Price Movements:
 {moves_str if moves_str else "No significant moves detected."}
+
+### References:
+{references if references else "No references available."}
 """
         return prompt
     
     def _build_us_prompt(self, data):
         moves_str = "\n".join([f"- {m['symbol']}: {m['change']}% at ${m['price']}" for m in data['moves']])
-        global_news_str = "\n".join([f"- {n['headline']} ({n['source']}) | Link: {n['link']}" for n in data.get('global_news', [])])
-        focus_str = "\n".join([f"- {n['headline']} ({n['source']}) | Link: {n['link']}" for n in data.get('focus_news', [])])
+        global_news_str = "\n".join([f"- [{i+1}] {n['headline']} ({n['source']})" for i, n in enumerate(data.get('global_news', []))])
+        focus_str = "\n".join([f"- [{i+1}] {n['headline']} ({n['source']})" for i, n in enumerate(data.get('focus_news', []))])
+        
+        # Collect all references
+        all_news = data.get('global_news', []) + data.get('focus_news', [])
+        references = "\n".join([f"[{i+1}] {n['link']}" for i, n in enumerate(all_news)])
         
         prompt = f"""
 You are the 'Market Pulse' US/International Market Analyst. Your mission is to provide a focused international market report.
@@ -188,18 +203,22 @@ You are the 'Market Pulse' US/International Market Analyst. Your mission is to p
 ### MISSION:
 Provide a structured US/International market report with the following sections:
 
-1. **US Market Overview**: Key US market movements and trends
-2. **International Highlights**: Major global market events
+1. **US Market Overview**: Key US market movements and trends (ONLY from provided news)
+2. **International Highlights**: Major global market events (ONLY from provided news)
 3. **Focus Sector Analysis**: Analysis of {FOCUS_KEYWORDS} in international context
 4. **Market Sentiments**: Overall bullish/bearish sentiment with reasoning
 5. **Special Patterns**: Identify any unusual patterns or trends
 6. **Watchlist Updates**: Brief updates on international watchlist stocks
 
-### IMPORTANT:
-- Include source URLs prominently for all news items
-- Analyze patterns and trends from the context
-- Look for unusual market behavior or interesting correlations
-- Format with clear section headers and bullet points
+### CRITICAL RULES:
+- ONLY use data provided in the sections below. Do NOT hallucinate or invent any market data, index movements, or statistics.
+- Do NOT report on DJIA, S&P 500, Nasdaq, or any other indices unless they are explicitly mentioned in the news.
+- Do NOT make up percentage changes or market movements.
+- Use numbered references [1], [2], etc. in the text for news items.
+- List all reference URLs at the end under 'References' section.
+- Analyze patterns and trends from the context.
+- Look for unusual market behavior or interesting correlations.
+- Format with clear section headers and bullet points.
 
 ---
 
@@ -211,13 +230,20 @@ Provide a structured US/International market report with the following sections:
 
 ### Price Movements:
 {moves_str if moves_str else "No significant moves detected."}
+
+### References:
+{references if references else "No references available."}
 """
         return prompt
     
     def _build_daily_summary_prompt(self, data):
         moves_str = "\n".join([f"- {m['symbol']}: {m['change']}% at ${m['price']}" for m in data['moves']])
-        news_str = "\n".join([f"- {n['headline']} ({n['source']}) | Link: {n['link']}" for n in data['local_news'] + data['global_news']])
-        focus_str = "\n".join([f"- {n['headline']} ({n['source']}) | Link: {n['link']}" for n in data.get('focus_news', [])])
+        news_str = "\n".join([f"- [{i+1}] {n['headline']} ({n['source']})" for i, n in enumerate(data['local_news'] + data['global_news'])])
+        focus_str = "\n".join([f"- [{i+1}] {n['headline']} ({n['source']})" for i, n in enumerate(data.get('focus_news', []))])
+        
+        # Collect all references
+        all_news = data['local_news'] + data['global_news'] + data.get('focus_news', [])
+        references = "\n".join([f"[{i+1}] {n['link']}" for i, n in enumerate(all_news)])
         
         prompt = f"""
 You are the 'Market Pulse' Daily Summary Analyst. Your mission is to provide a comprehensive end-of-day market summary.
@@ -226,18 +252,22 @@ You are the 'Market Pulse' Daily Summary Analyst. Your mission is to provide a c
 Provide a comprehensive daily market summary covering:
 
 1. **Day's Top Stories**: 5-7 most important market events of the day
-2. **Market Performance**: Overall market performance summary
+2. **Market Performance**: Overall market performance summary (ONLY from provided data)
 3. **Sector Analysis**: Deep dive into {FOCUS_KEYWORDS} performance
 4. **Key Movers**: Best and worst performers from watchlist
 5. **Trends and Patterns**: Important trends or patterns observed today
 6. **Tomorrow's Outlook**: What to watch for tomorrow
 
-### IMPORTANT:
-- Include source URLs prominently
-- Provide actionable insights
-- Highlight any significant changes or breaking patterns
-- Format with clear section headers
-- Be comprehensive but concise
+### CRITICAL RULES:
+- ONLY use data provided in the sections below. Do NOT hallucinate or invent any market data, index movements, or statistics.
+- Do NOT report on DJIA, S&P 500, Nasdaq, or any other indices unless they are explicitly mentioned in the news.
+- Do NOT make up percentage changes or market movements.
+- Use numbered references [1], [2], etc. in the text for news items.
+- List all reference URLs at the end under 'References' section.
+- Provide actionable insights.
+- Highlight any significant changes or breaking patterns.
+- Format with clear section headers.
+- Be comprehensive but concise.
 
 ---
 
@@ -249,5 +279,8 @@ Provide a comprehensive daily market summary covering:
 
 ### Price Movements:
 {moves_str if moves_str else "No significant moves detected."}
+
+### References:
+{references if references else "No references available."}
 """
         return prompt

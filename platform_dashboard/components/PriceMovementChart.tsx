@@ -38,7 +38,8 @@ export default function PriceMovementChart({ alerts }: PriceMovementChartProps) 
         <Tooltip 
           contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
           itemStyle={{ color: '#e2e8f0' }}
-          formatter={(value: number) => [`${value.toFixed(2)}%`, 'Change']}
+          formatter={(value: any) => `${typeof value === 'number' ? value.toFixed(2) : value}%`}
+          labelFormatter={(label) => `Symbol: ${label}`}
         />
         <Bar dataKey="change" radius={[4, 4, 0, 0]}>
           {data.map((entry, index) => (

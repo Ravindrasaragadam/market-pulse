@@ -202,10 +202,11 @@ class MarketResearcher:
     
     def collect_us_data(self):
         """Collects US/International data for US report."""
+        # Focus news is India-specific, so exclude from US report to avoid overlap
         return {
             "moves": self.get_stock_movements(filter_significant=False),
             "global_news": self.get_global_news(),
-            "focus_news": self.get_focus_news()
+            "focus_news": []  # Empty to avoid overlap with India report
         }
     
     def get_all_news_for_tracking(self):
