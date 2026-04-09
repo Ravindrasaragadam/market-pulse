@@ -75,27 +75,30 @@ class MarketMonitor:
                 elif message.text:
                     all_new_text.append(message.text)
 
+        # 2. Daily/Periodic Market Review (Research + News)
+        research_data = self.researcher.collect_all_data()
+        
+        # Add Telegram context to news
+        if all_new_text:
+            research_data['telegram_context'] = all_new_text[:20]
+
         print(f"Found {len(all_new_images)} images and {len(all_new_text)} news snippets.")
 
-        # 2. Daily/Periodic Market Review (Research + News)
-        # We aggregate all new text into the research context
-        extended_news = all_new_text[:50] # Top 50 newest to avoid context overflow
-        market_stats, news_headlines = self.researcher.get_market_snapshot()
-        
         # 3. Analyze Images (Technical Analysis)
         for img_path in all_new_images:
-            analysis = self.analyzer.analyze_chart(img_path, f"Context from channel: {news_headlines[:5]}")
-            if analysis:
-                await self.send_alert(analysis)
-                self.db.save_alert(analysis)
+            analysis_text = self.analyzer.analyze_market_state(research_data, image_path=img_path)
+            if analysis_text:
+                await self.send_raw_alert(analysis_text)
+                # Save as a general macro alert
+                self.db.save_alert("MARKET_CHART", "IMAGE_ANALYSIS", analysis_text)
             os.remove(img_path)
 
-        # 4. Analyze General Sentiment (Macro)
-        full_context = f"RECENT TELEGRAM NEWS: {all_new_text[:20]}\n\nWEB NEWS: {news_headlines}"
-        general_signal = self.analyzer.analyze_sentiment(full_context)
-        if general_signal:
-            await self.send_alert(general_signal)
-            self.db.save_alert(general_signal)
+        # 4. Analyze General Sentiment if new text found or no images
+        if all_new_text or not all_new_images:
+            analysis_text = self.analyzer.analyze_market_state(research_data)
+            if analysis_text:
+                await self.send_raw_alert(analysis_text)
+                self.db.save_alert("MARKET_MACRO", "SENTIMENT", analysis_text)
 
         # 5. Save state
         if max_id > last_id:
@@ -104,15 +107,11 @@ class MarketMonitor:
         await self.client.disconnect()
         await self.bot_client.disconnect()
 
-    async def send_alert(self, signal):
-        """Dispatch signals to the Telegram Alert Bot."""
+    async def send_raw_alert(self, text):
+        """Dispatch raw text signals to the Telegram Alert Bot."""
         from .config import TELEGRAM_ALERT_CHAT_ID
-        msg = (
-            f"🚀 **{signal['signal']} SIGNAL: {signal['ticker']}**\n"
-            f"Confidence: {signal['confidence']}%\n\n"
-            f"📝 **Analysis**: {signal['analysis']}\n\n"
-            f"🏷 #MarketPulse #{signal['ticker']}"
-        )
+        # Simple formatting for raw text from AI
+        msg = f"🔍 **MARKET PULSE INSIGHT**\n\n{text}\n\n#AutomatedAnalysis"
         await self.bot_client.send_message(TELEGRAM_ALERT_CHAT_ID, msg)
 
 if __name__ == "__main__":
