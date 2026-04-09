@@ -22,7 +22,7 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
 
 # App Settings
 INCLUDE_INTERNATIONAL = os.getenv("INCLUDE_INTERNATIONAL", "True").lower() == "true"
-EVALUATION_INTERVAL = int(os.getenv("EVALUATION_INTERVAL_MINS", 30))
+EVALUATION_INTERVAL_MINS = int(os.getenv("EVALUATION_INTERVAL_MINS", 30))
 WATCHLIST = os.getenv("WATCHLIST_SYMBOLS", "").split(",")
 FOCUS_KEYWORDS = os.getenv("FOCUS_KEYWORDS", "")
 
