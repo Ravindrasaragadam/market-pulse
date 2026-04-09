@@ -10,6 +10,7 @@ import MarketMetrics from "@/components/MarketMetrics";
 import CommoditiesWidget from "@/components/CommoditiesWidget";
 import TradingViewWidget from "@/components/TradingViewWidget";
 import StockGrid from "@/components/StockGrid";
+import AISummary from "@/components/AISummary";
 
 export default function Dashboard() {
   const [alerts, setAlerts] = useState<any[]>([]);
@@ -19,6 +20,8 @@ export default function Dashboard() {
   const [filterType, setFilterType] = useState<string>("ALL");
   const [sortBy, setSortBy] = useState<string>("date");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [market, setMarket] = useState<"INDIA" | "US">("INDIA");
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   useEffect(() => {
     async function fetchAlerts() {
@@ -50,7 +53,7 @@ export default function Dashboard() {
 
   // Mock stock data for now - will be replaced with real data from database
   useEffect(() => {
-    const mockStocks = [
+    const indiaStocks = [
       {
         symbol: "TCS",
         price: 3845.50,
@@ -124,8 +127,84 @@ export default function Dashboard() {
         growth: { day1: 1.8, week1: 3.2, month1: 6.5, year1: 28.5 }
       }
     ];
-    setStocks(mockStocks);
-  }, []);
+
+    const usStocks = [
+      {
+        symbol: "AAPL",
+        price: 178.50,
+        change: 1.2,
+        signal: "BUY" as const,
+        sparklineData: [175, 176, 177, 178, 178],
+        fundamentals: { pe: 28.5, marketCap: "2.8T", volume: "52.1M" },
+        growth: { day1: 1.2, week1: 2.8, month1: 4.5, year1: 15.3 }
+      },
+      {
+        symbol: "MSFT",
+        price: 425.30,
+        change: 0.8,
+        signal: "BUY" as const,
+        sparklineData: [420, 422, 424, 425, 425],
+        fundamentals: { pe: 35.2, marketCap: "3.2T", volume: "22.5M" },
+        growth: { day1: 0.8, week1: 1.5, month1: 3.2, year1: 28.5 }
+      },
+      {
+        symbol: "GOOGL",
+        price: 156.75,
+        change: -0.5,
+        signal: "NEUTRAL" as const,
+        sparklineData: [158, 157, 157, 156, 156],
+        fundamentals: { pe: 24.8, marketCap: "2.0T", volume: "18.3M" },
+        growth: { day1: -0.5, week1: 0.3, month1: 2.1, year1: 18.2 }
+      },
+      {
+        symbol: "NVDA",
+        price: 895.60,
+        change: 3.5,
+        signal: "BUY" as const,
+        sparklineData: [870, 880, 885, 890, 895],
+        fundamentals: { pe: 65.5, marketCap: "2.2T", volume: "45.2M" },
+        growth: { day1: 3.5, week1: 5.2, month1: 12.5, year1: 185.3 }
+      },
+      {
+        symbol: "TSLA",
+        price: 245.40,
+        change: -2.1,
+        signal: "SELL" as const,
+        sparklineData: [255, 250, 248, 246, 245],
+        fundamentals: { pe: 42.2, marketCap: "780B", volume: "112.5M" },
+        growth: { day1: -2.1, week1: -4.5, month1: -8.2, year1: -15.8 }
+      },
+      {
+        symbol: "AMZN",
+        price: 178.90,
+        change: 1.8,
+        signal: "BUY" as const,
+        sparklineData: [175, 176, 177, 178, 178],
+        fundamentals: { pe: 58.5, marketCap: "1.9T", volume: "35.2M" },
+        growth: { day1: 1.8, week1: 3.2, month1: 6.5, year1: 42.5 }
+      },
+      {
+        symbol: "META",
+        price: 505.25,
+        change: 2.2,
+        signal: "BUY" as const,
+        sparklineData: [495, 498, 500, 502, 505],
+        fundamentals: { pe: 32.8, marketCap: "1.3T", volume: "18.5M" },
+        growth: { day1: 2.2, week1: 4.5, month1: 8.5, year1: 125.3 }
+      },
+      {
+        symbol: "AMD",
+        price: 185.80,
+        change: 4.2,
+        signal: "BUY" as const,
+        sparklineData: [175, 178, 180, 183, 185],
+        fundamentals: { pe: 45.2, marketCap: "300B", volume: "65.2M" },
+        growth: { day1: 4.2, week1: 8.5, month1: 15.2, year1: 95.8 }
+      }
+    ];
+
+    setStocks(market === "INDIA" ? indiaStocks : usStocks);
+  }, [market]);
   
   const filteredAlerts = alerts.filter(alert => {
     if (filterType === "ALL") return true;
@@ -141,27 +220,70 @@ export default function Dashboard() {
     return 0;
   });
 
+  const filteredStocks = stocks.filter(stock => 
+    stock.symbol.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <main className="min-h-screen bg-slate-950 text-white p-8">
-      <header className="flex justify-between items-center mb-8 border-b border-slate-800 pb-6">
-        <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-            Market Pulse
-          </h1>
-          <p className="text-slate-400 mt-2">Market Intelligence & Signal Hub</p>
-        </div>
-        <div className="flex gap-4">
-          <div className="bg-slate-900 px-4 py-2 rounded-lg border border-slate-800">
-            <span className="text-sm font-medium text-slate-500 block uppercase">Market Status</span>
-            <div className="flex items-center gap-2">
-              <span className="text-emerald-400 font-bold">● LIVE (NSE/BSE)</span>
-              {lastUpdated && (
-                <span className="text-slate-500 text-xs">
-                  Last updated: {lastUpdated.toLocaleTimeString()}
-                </span>
-              )}
+      <header className="mb-8 border-b border-slate-800 pb-6">
+        <div className="flex justify-between items-start mb-6">
+          <div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+              Market Pulse
+            </h1>
+            <p className="text-slate-400 mt-2">Market Intelligence & Signal Hub</p>
+          </div>
+          <div className="flex gap-4 items-center">
+            {/* Market Toggle */}
+            <div className="flex bg-slate-900 rounded-lg border border-slate-800 p-1">
+              <button
+                onClick={() => setMarket("INDIA")}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  market === "INDIA"
+                    ? "bg-orange-500/20 text-orange-400"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                🇮🇳 India
+              </button>
+              <button
+                onClick={() => setMarket("US")}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  market === "US"
+                    ? "bg-blue-500/20 text-blue-400"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                🇺🇸 US
+              </button>
+            </div>
+            <div className="bg-slate-900 px-4 py-2 rounded-lg border border-slate-800">
+              <span className="text-sm font-medium text-slate-500 block uppercase">Market Status</span>
+              <div className="flex items-center gap-2">
+                <span className="text-emerald-400 font-bold">● LIVE</span>
+                {lastUpdated && (
+                  <span className="text-slate-500 text-xs">
+                    Last updated: {lastUpdated.toLocaleTimeString()}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search stocks by symbol..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-slate-900 border border-slate-800 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+          />
+          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500">
+            🔍
+          </span>
         </div>
       </header>
 
@@ -170,33 +292,17 @@ export default function Dashboard() {
         <TradingViewWidget />
       </div>
 
-      {/* Market Metrics */}
-      <div className="mb-8">
-        <MarketMetrics alerts={alerts} />
-      </div>
-
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl">
-          <h2 className="text-xl font-semibold mb-4">Report Distribution</h2>
-          <SentimentPieChart alerts={alerts} />
-        </div>
-        <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl">
-          <h2 className="text-xl font-semibold mb-4">Reports by Type</h2>
-          <PriceMovementChart alerts={alerts} />
-        </div>
-        <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl">
-          <h2 className="text-xl font-semibold mb-4">Report Types</h2>
-          <SignalTrendChart alerts={alerts} />
-        </div>
-      </div>
-
       {/* Stock Grid - Main Feature */}
       <div className="mb-8">
         <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
-          📈 Watchlist Stocks
+          📈 {market === "INDIA" ? "Indian" : "US"} Watchlist Stocks
         </h2>
-        <StockGrid stocks={stocks} />
+        <StockGrid stocks={filteredStocks} />
+      </div>
+
+      {/* AI Summary */}
+      <div className="mb-8">
+        <AISummary market={market} />
       </div>
 
       {/* Commodities Widget */}

@@ -11,21 +11,16 @@ export default function CommoditiesWidget({ watchlist = ['GC=F', 'SI=F'] }: Comm
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchCommodities() {
-      try {
-        const response = await fetch('/api/commodities');
-        if (response.ok) {
-          const data = await response.json();
-          setPrices(data);
-        }
-      } catch (error) {
-        console.error('Error fetching commodities:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchCommodities();
+    // Mock data for commodities - will be replaced with real data from API
+    const mockData = {
+      'GC=F': { price: 2345.50, change: 1.2 },
+      'SI=F': { price: 28.35, change: -0.8 }
+    };
+    
+    setTimeout(() => {
+      setPrices(mockData);
+      setLoading(false);
+    }, 500);
   }, []);
 
   const commodityNames: Record<string, string> = {
