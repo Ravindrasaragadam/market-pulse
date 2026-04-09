@@ -39,39 +39,33 @@ class AIAnalyzer:
 
     def _build_prompt(self, data):
         moves_str = "\n".join([f"- {m['symbol']}: {m['change']}% at ${m['price']}" for m in data['moves']])
-        news_str = "\n".join([f"- {n['headline']} ({n['source']})" for n in data['local_news'] + data['global_news']])
-        focus_str = "\n".join([f"- {n['headline']} ({n['source']})" for n in data.get('focus_news', [])])
+        news_str = "\n".join([f"- {n['headline']} ({n['source']}) | Link: {n['link']}" for n in data['local_news'] + data['global_news']])
+        focus_str = "\n".join([f"- {n['headline']} ({n['source']}) | Link: {n['link']}" for n in data.get('focus_news', [])])
         
         prompt = f"""
-Analyze the following market data and provide a concise 'Market Signal' for each of the following sectors: {FOCUS_KEYWORDS}.
-Focus primarily on these sectors and identify how specific news or price moves affect them.
+You are the 'Market Pulse' AI Lead Analyst. Your mission is to provide a comprehensive, high-fidelity market summary.
+
+### MISSION:
+Provide a 3-part intelligence report based on the provided data:
+1. **Macro Pulse**: A broad summary of the global and Indian market sentiment. Mention major indices or news trends.
+2. **Watchlist Insights**: Short, specific updates for each stock in the 'Price Movements' list below. Mention their price and % change.
+3. **Sector Spotlight**: Deep analysis of the focus sectors: {FOCUS_KEYWORDS}. Use the 'Sector-Specific Focus News' provided.
+
+### IMPORTANT:
+- Include source URLs (provided in the links) so the user can read more.
+- If a stock or sector has no specific news, explain the current price action instead.
+- If an image (technical chart) is provided, incorporate it into the most relevant section.
+- Format with bold headers and bullet points for Telegram readability.
+
+---
 
 ### Sector-Specific Focus News:
 {focus_str if focus_str else "No targeted news found for focus sectors today."}
 
-### Price Movements (Watchlist):
+### Price Movements (Watchlist Stats):
 {moves_str if moves_str else "No significant moves detected."}
 
-### General Market News:
+### Broad Market News:
 {news_str if news_str else "No major news headlines."}
-
-Identify and alert for any 'Market Corrections' or 'Big Moves' in these sectors.
-
-### Price Movements:
-{moves_str if moves_str else "No significant moves detected."}
-
-### Recent News:
-{news_str if news_str else "No major news headlines."}
-
-### Task:
-1. Identify if any of the above news/moves affect the user's investments.
-2. If an image is attached, interpret the technical chart.
-3. Provide a clear signal: [STRONG BUY / BUY / NEUTRAL / SELL / STRONG SELL].
-4. Predict if a major market shift is incoming.
-
-Output Format:
-SIGNAL: [Type]
-REASONING: [1-2 sentences]
-ALERT: [True/False if immediate attention needed]
 """
         return prompt

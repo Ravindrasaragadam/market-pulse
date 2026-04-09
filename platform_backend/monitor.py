@@ -68,7 +68,7 @@ class MarketMonitor:
         search_start = datetime.now(timezone.utc) - timedelta(minutes=45) # 45m safety window
 
         for chat_id in TELEGRAM_ALLOWED_CHATS:
-            # We fetch up to 50 messages per channel from the last 45 mins to be safe
+            # We fetch up to 50 messages per channel
             async for message in self.client.iter_messages(
                 chat_id, 
                 min_id=last_id, 
@@ -82,6 +82,7 @@ class MarketMonitor:
                 if message.photo:
                     path = await message.download_media(file='downloads/')
                     all_new_images.append(path)
+                    print(f"Downloaded image from message {message.id}")
                 elif message.text:
                     all_new_text.append(message.text)
 
@@ -90,24 +91,29 @@ class MarketMonitor:
         
         # Add Telegram context to news
         if all_new_text:
-            research_data['telegram_context'] = all_new_text[:20]
+            research_data['telegram_context'] = all_new_text[:50] # Increased for broader coverage
 
-        print(f"Found {len(all_new_images)} images and {len(all_new_text)} news snippets.")
+        print(f"Total Found: {len(all_new_images)} images and {len(all_new_text)} news snippets.")
 
-        # 3. Analyze Images (Technical Analysis)
-        for img_path in all_new_images:
+        # 3. Analyze Images (Technical Analysis) - Capped at 10 to avoid timeout/spam
+        image_count = 0
+        for img_path in reversed(all_new_images): # Start with most recent
+            if image_count >= 10: break
+            
+            print(f"Analyzing image {image_count+1}/10...")
             analysis_text = self.analyzer.analyze_market_state(research_data, image_path=img_path)
             if analysis_text:
-                await self.send_raw_alert(analysis_text)
-                # Save as a general macro alert
+                await self.send_raw_alert(analysis_text, "CHART ANALYSIS")
                 self.db.save_alert("MARKET_CHART", "IMAGE_ANALYSIS", analysis_text)
             os.remove(img_path)
+            image_count += 1
 
         # 4. Analyze General Sentiment if new text found or no images
         if all_new_text or not all_new_images:
+            print("Performing broad market analysis...")
             analysis_text = self.analyzer.analyze_market_state(research_data)
             if analysis_text:
-                await self.send_raw_alert(analysis_text)
+                await self.send_raw_alert(analysis_text, "MARKET PULSE")
                 self.db.save_alert("MARKET_MACRO", "SENTIMENT", analysis_text)
 
         # 5. Save state
@@ -117,12 +123,19 @@ class MarketMonitor:
         await self.client.disconnect()
         await self.bot_client.disconnect()
 
-    async def send_raw_alert(self, text):
-        """Dispatch raw text signals to the Telegram Alert Bot."""
+    async def send_raw_alert(self, text, title):
+        """Dispatch raw text signals with message splitting."""
         from .config import TELEGRAM_ALERT_CHAT_ID
-        # Simple formatting for raw text from AI
-        msg = f"🔍 **MARKET PULSE INSIGHT**\n\n{text}\n\n#AutomatedAnalysis"
-        await self.bot_client.send_message(TELEGRAM_ALERT_CHAT_ID, msg)
+        
+        # Split message if it exceeds Telegram's 4096 character limit
+        # We use a safe margin of 4000
+        MAX_LEN = 4000
+        parts = [text[i:i+MAX_LEN] for i in range(0, len(text), MAX_LEN)]
+        
+        for idx, part in enumerate(parts):
+            suffix = f" (Part {idx+1}/{len(parts)})" if len(parts) > 1 else ""
+            msg = f"🔍 **{title}{suffix}**\n\n{part}\n\n#AutomatedAnalysis"
+            await self.bot_client.send_message(TELEGRAM_ALERT_CHAT_ID, msg)
 
 if __name__ == "__main__":
     monitor = MarketMonitor()
