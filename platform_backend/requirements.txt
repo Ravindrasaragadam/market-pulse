@@ -7,3 +7,4 @@ apscheduler
 lxml
 requests
 httpx>=0.24.0
+openai
