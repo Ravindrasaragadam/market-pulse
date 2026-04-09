@@ -9,9 +9,11 @@ import SignalTrendChart from "@/components/SignalTrendChart";
 import MarketMetrics from "@/components/MarketMetrics";
 import CommoditiesWidget from "@/components/CommoditiesWidget";
 import TradingViewWidget from "@/components/TradingViewWidget";
+import StockGrid from "@/components/StockGrid";
 
 export default function Dashboard() {
   const [alerts, setAlerts] = useState<any[]>([]);
+  const [stocks, setStocks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<string>("ALL");
@@ -44,6 +46,85 @@ export default function Dashboard() {
       }
     }
     fetchAlerts();
+  }, []);
+
+  // Mock stock data for now - will be replaced with real data from database
+  useEffect(() => {
+    const mockStocks = [
+      {
+        symbol: "TCS",
+        price: 3845.50,
+        change: 2.5,
+        signal: "BUY" as const,
+        sparklineData: [3800, 3820, 3810, 3830, 3845],
+        fundamentals: { pe: 28.5, marketCap: "14.5T", volume: "2.1M" },
+        growth: { day1: 2.5, week1: 3.2, month1: 5.1, year1: 12.3 }
+      },
+      {
+        symbol: "INFY",
+        price: 1425.30,
+        change: -1.2,
+        signal: "SELL" as const,
+        sparklineData: [1450, 1440, 1435, 1430, 1425],
+        fundamentals: { pe: 24.2, marketCap: "5.8T", volume: "8.5M" },
+        growth: { day1: -1.2, week1: -0.8, month1: 2.1, year1: 8.5 }
+      },
+      {
+        symbol: "RELIANCE",
+        price: 2580.75,
+        change: 0.8,
+        signal: "NEUTRAL" as const,
+        sparklineData: [2570, 2575, 2578, 2580, 2580],
+        fundamentals: { pe: 22.8, marketCap: "17.2T", volume: "5.3M" },
+        growth: { day1: 0.8, week1: 1.5, month1: 3.2, year1: 15.8 }
+      },
+      {
+        symbol: "HDFC",
+        price: 1678.90,
+        change: 1.5,
+        signal: "BUY" as const,
+        sparklineData: [1660, 1665, 1670, 1675, 1678],
+        fundamentals: { pe: 19.5, marketCap: "9.8T", volume: "3.2M" },
+        growth: { day1: 1.5, week1: 2.1, month1: 4.5, year1: 18.2 }
+      },
+      {
+        symbol: "ICICI",
+        price: 1085.40,
+        change: -0.5,
+        signal: "NEUTRAL" as const,
+        sparklineData: [1090, 1088, 1086, 1085, 1085],
+        fundamentals: { pe: 18.2, marketCap: "6.2T", volume: "7.8M" },
+        growth: { day1: -0.5, week1: 0.3, month1: 2.8, year1: 22.5 }
+      },
+      {
+        symbol: "SBIN",
+        price: 785.60,
+        change: 3.2,
+        signal: "BUY" as const,
+        sparklineData: [760, 770, 775, 780, 785],
+        fundamentals: { pe: 12.5, marketCap: "7.0T", volume: "12.5M" },
+        growth: { day1: 3.2, week1: 4.5, month1: 8.2, year1: 35.8 }
+      },
+      {
+        symbol: "WIPRO",
+        price: 456.80,
+        change: -2.1,
+        signal: "SELL" as const,
+        sparklineData: [470, 465, 460, 458, 456],
+        fundamentals: { pe: 21.5, marketCap: "2.5T", volume: "15.2M" },
+        growth: { day1: -2.1, week1: -3.5, month1: -5.2, year1: -8.5 }
+      },
+      {
+        symbol: "TATASTEEL",
+        price: 145.25,
+        change: 1.8,
+        signal: "BUY" as const,
+        sparklineData: [142, 143, 144, 145, 145],
+        fundamentals: { pe: 15.2, marketCap: "1.8T", volume: "8.5M" },
+        growth: { day1: 1.8, week1: 3.2, month1: 6.5, year1: 28.5 }
+      }
+    ];
+    setStocks(mockStocks);
   }, []);
   
   const filteredAlerts = alerts.filter(alert => {
@@ -110,82 +191,17 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: Alerts List */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-semibold flex items-center gap-2">
-              🚀 Recent Signals
-            </h2>
-            <div className="flex gap-2">
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="bg-slate-900 border border-slate-700 text-white px-3 py-2 rounded-lg text-sm"
-              >
-                <option value="ALL">All Reports</option>
-                <option value="INDIA_MARKET">India Market</option>
-                <option value="US_MARKET">US Market</option>
-                <option value="DAILY_SUMMARY">Daily Summary</option>
-              </select>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="bg-slate-900 border border-slate-700 text-white px-3 py-2 rounded-lg text-sm"
-              >
-                <option value="date">Sort by Date</option>
-                <option value="strength">Sort by Strength</option>
-              </select>
-            </div>
-          </div>
-          {loading ? (
-            <div className="animate-pulse space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-32 bg-slate-900 rounded-xl" />
-              ))}
-            </div>
-          ) : error ? (
-            <div className="bg-rose-500/10 border border-rose-500/50 p-8 rounded-xl text-center">
-              <h3 className="text-xl font-bold text-rose-400 mb-2">Connection Error</h3>
-              <p className="text-slate-400 mb-4">{error}</p>
-              <p className="text-sm text-slate-500">
-                Ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set in Vercel.
-              </p>
-            </div>
-          ) : sortedAlerts.length === 0 ? (
-            <div className="bg-slate-900 border border-slate-800 p-12 rounded-xl text-center">
-              <p className="text-slate-500 italic">No signals found. The AI is still scanning...</p>
-            </div>
-          ) : (
-            sortedAlerts.slice(0, 10).map((alert) => (
-              <div key={alert.id} className="bg-slate-900 border border-slate-800 p-6 rounded-xl hover:border-cyan-500/50 transition-colors">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
-                      alert.symbol === 'INDIA_MARKET' ? 'bg-orange-500/20 text-orange-400' : 
-                      alert.symbol === 'US_MARKET' ? 'bg-blue-500/20 text-blue-400' : 
-                      'bg-purple-500/20 text-purple-400'
-                    }`}>
-                      {alert.symbol.replace('_', ' ')}
-                    </span>
-                    <span className="text-sm text-slate-400 ml-2">{alert.signal_type.replace('_', ' ')}</span>
-                  </div>
-                  <span className="text-slate-500 text-sm">
-                    {new Date(alert.created_at).toLocaleString()}
-                  </span>
-                </div>
-                <div className="text-slate-300 leading-relaxed prose prose-invert prose-sm max-w-none">
-                  <ReactMarkdown>{alert.reasoning}</ReactMarkdown>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+      {/* Stock Grid - Main Feature */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
+          📈 Watchlist Stocks
+        </h2>
+        <StockGrid stocks={stocks} />
+      </div>
 
-        {/* Right Column: Commodities Widget */}
-        <div className="space-y-8">
-          <CommoditiesWidget />
-        </div>
+      {/* Commodities Widget */}
+      <div className="mb-8">
+        <CommoditiesWidget />
       </div>
     </main>
   );

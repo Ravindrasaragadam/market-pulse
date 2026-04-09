@@ -102,6 +102,16 @@ class AIAnalyzer:
         
         return response.choices[0].message.content
 
+    def analyze_telegram_summary(self, research_data, report_type="INDIA"):
+        """Analyze data for short Telegram summary."""
+        prompt = self._build_telegram_summary_prompt(research_data, report_type)
+        response = self.client.chat.completions.create(
+            model=NIM_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7
+        )
+        return response.choices[0].message.content
+    
     def _build_prompt(self, data):
         moves_str = "\n".join([f"- {m['symbol']}: {m['change']}% at ${m['price']}" for m in data['moves']])
         news_str = "\n".join([f"- {n['headline']} ({n['source']}) | Link: {n['link']}" for n in data['local_news'] + data['global_news']])
@@ -263,3 +273,71 @@ Provide a comprehensive daily market summary covering:
 {moves_str if moves_str else "No significant moves detected."}
 """
         return prompt
+    
+    def _build_telegram_summary_prompt(self, data, report_type="INDIA"):
+        """Build prompt for generating short Telegram-friendly summary."""
+        moves_str = "\n".join([f"- {m['symbol']}: {m['change']}% at ${m['price']}" for m in data['moves']])
+        
+        flag = "🇮🇳" if report_type == "INDIA" else "🇺🇸"
+        market = "India" if report_type == "INDIA" else "US/International"
+        
+        prompt = f"""
+You are the 'Market Pulse' Telegram Summary Generator. Your mission is to create a SHORT, PUNCHY summary for Telegram.
+
+### MISSION:
+Generate a concise Telegram message with the following structure:
+
+{flag} {market} Market Pulse
+
+🔥 HOT SIGNALS:
+• [SYMBOL]: [BUY/SELL/NEUTRAL] ([+/-X.X]%) - [ONE-LINE REASONING]
+• [SYMBOL]: [BUY/SELL/NEUTRAL] ([+/-X.X]%) - [ONE-LINE REASONING]
+• [SYMBOL]: [BUY/SELL/NEUTRAL] ([+/-X.X]%) - [ONE-LINE REASONING]
+
+📊 MARKET: [BULLISH/BEARISH/NEUTRAL] - [ONE-SENTENCE SUMMARY]
+
+🔗 View Details: [DASHBOARD URL]
+
+### CRITICAL RULES:
+- Extract ONLY the most important stock signals from the data (max 5)
+- Keep each bullet point to ONE LINE
+- Use emojis for visual appeal
+- Include percentage changes
+- Keep the entire message under 300 characters if possible
+- Focus on actionable signals, not general news
+- Use BUY/SELL/NEUTRAL in caps
+- Make it skimmable and quick to read
+
+### Price Movements:
+{moves_str if moves_str else "No significant moves detected."}
+
+### Output Format:
+Provide ONLY the Telegram message, no other text.
+"""
+        return prompt
+    
+    def extract_stock_signals(self, analysis_text):
+        """Extract individual stock signals from the full analysis text."""
+        import re
+        
+        signals = []
+        # Pattern to match stock symbols with signals
+        # This is a simple pattern - can be improved with more sophisticated parsing
+        lines = analysis_text.split('\n')
+        
+        for line in lines:
+            # Look for patterns like "TCS: BUY (+2.5%)" or "INFY: SELL (-1.2%)"
+            match = re.search(r'([A-Z]+):?\s*(BUY|SELL|NEUTRAL)\s*([+-]?\d+\.?\d*%?)', line, re.IGNORECASE)
+            if match:
+                symbol = match.group(1).upper()
+                signal = match.group(2).upper()
+                change = match.group(3)
+                
+                signals.append({
+                    'symbol': symbol,
+                    'signal': signal,
+                    'change': change,
+                    'reasoning': line.strip()
+                })
+        
+        return signals
