@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 interface AISummaryProps {
   market: "INDIA" | "US";
@@ -11,37 +12,33 @@ export default function AISummary({ market }: AISummaryProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Mock AI summary for now - will be replaced with real AI-generated content
-    const mockSummaries = {
-      INDIA: `🧠 AI Market Intelligence (Last 30 Minutes)
+    async function fetchAISummary() {
+      try {
+        const symbol = market === "INDIA" ? "INDIA_MARKET" : "US_MARKET";
+        const { data, error } = await supabase
+          .from("alerts")
+          .select("reasoning")
+          .eq("symbol", symbol)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
 
-🔥 **Key Insight**: IT sector showing resilience despite global tech weakness. TCS and INFY ADRs moving contrary to US tech trends, indicating strong domestic demand.
+        if (error) throw error;
 
-📊 **Trend Alert**: Banking stocks (SBIN, HDFC, ICICI) showing unusual volume patterns - possible institutional accumulation detected.
+        if (data && data.reasoning) {
+          setSummary(data.reasoning);
+        } else {
+          setSummary("No AI analysis available yet. The backend will generate market reports periodically.");
+        }
+      } catch (err: any) {
+        console.error("Error fetching AI summary:", err);
+        setSummary("Unable to fetch AI analysis. Please check backend connection.");
+      } finally {
+        setLoading(false);
+      }
+    }
 
-💡 **Opportunity**: Synthetic Biology focus area gaining momentum with 3 major announcements in last hour. Consider exposure through diversified ETF approach.
-
-⚠️ **Risk Factor**: Gold prices testing resistance at $2,350 - watch for breakout or reversal signals.
-
-🎯 **Actionable**: Keep 30% cash for potential volatility in next 48 hours around RBI policy expectations.`,
-
-      US: `🧠 AI Market Intelligence (Last 30 Minutes)
-
-🔥 **Key Insight**: AI infrastructure stocks (NVDA, AMD) showing strength despite broader market weakness. Institutional positioning suggests long-term conviction.
-
-📊 **Trend Alert**: Semiconductor supply chain improving - potential relief for manufacturing costs in Q2.
-
-💡 **Opportunity**: Quantum computing sector seeing renewed interest after IBM breakthrough announcement.
-
-⚠️ **Risk Factor**: Treasury yields approaching 4.5% - watch for impact on growth stock valuations.
-
-🎯 **Actionable**: Consider defensive rotation into healthcare and consumer staples if market volatility increases.`
-    };
-
-    setTimeout(() => {
-      setSummary(mockSummaries[market]);
-      setLoading(false);
-    }, 800);
+    fetchAISummary();
   }, [market]);
 
   if (loading) {

@@ -2,7 +2,7 @@
 -- This adds fields to store individual stock signals, fundamentals, and growth data
 
 -- Add new columns to alerts table
-ALTER TABLE alerts 
+ALTER TABLE alerts
 ADD COLUMN IF NOT EXISTS stock_symbol TEXT,
 ADD COLUMN IF NOT EXISTS signal_strength FLOAT,
 ADD COLUMN IF NOT EXISTS fundamentals JSONB,

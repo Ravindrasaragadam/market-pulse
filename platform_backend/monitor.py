@@ -125,13 +125,19 @@ class MarketMonitor:
                 # Extract and save individual stock signals
                 stock_signals = self.analyzer.extract_stock_signals(india_analysis)
                 for signal in stock_signals:
+                    # Fetch real fundamentals and historical data
+                    fundamentals = self.researcher.get_stock_fundamentals(signal['symbol'])
+                    historical_data = self.researcher.get_stock_historical_data(signal['symbol'])
+
                     self.db.save_alert(
                         symbol="INDIA_STOCK",
                         signal=signal['signal'],
                         reasoning=signal['reasoning'],
                         stock_symbol=signal['symbol'],
                         signal_strength=0.8 if signal['signal'] == 'BUY' else 0.2 if signal['signal'] == 'SELL' else 0.5,
-                        metadata={'change': signal.get('change', 0)}
+                        metadata={'change': signal.get('change', 0)},
+                        fundamentals=fundamentals,
+                        growth_data=historical_data
                     )
             
             # US Report
@@ -144,13 +150,19 @@ class MarketMonitor:
                 # Extract and save individual stock signals
                 stock_signals = self.analyzer.extract_stock_signals(us_analysis)
                 for signal in stock_signals:
+                    # Fetch real fundamentals and historical data
+                    fundamentals = self.researcher.get_stock_fundamentals(signal['symbol'])
+                    historical_data = self.researcher.get_stock_historical_data(signal['symbol'])
+
                     self.db.save_alert(
                         symbol="US_STOCK",
                         signal=signal['signal'],
                         reasoning=signal['reasoning'],
                         stock_symbol=signal['symbol'],
                         signal_strength=0.8 if signal['signal'] == 'BUY' else 0.2 if signal['signal'] == 'SELL' else 0.5,
-                        metadata={'change': signal.get('change', 0)}
+                        metadata={'change': signal.get('change', 0)},
+                        fundamentals=fundamentals,
+                        growth_data=historical_data
                     )
         else:
             # Single combined report (India only)

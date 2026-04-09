@@ -109,19 +109,19 @@ class MarketResearcher:
     def get_commodities_news(self):
         """Fetches global commodities news with emphasis on gold and silver."""
         commodities_news = []
-        
+
         # Kitco RSS for precious metals
         kitco_feeds = [
             "https://www.kitco.com/rss/",
             "https://www.kitco.com/rss/gold.xml"
         ]
-        
+
         for url in kitco_feeds:
             try:
                 commodities_news.extend(self._scrape_rss(url, "Kitco", True, limit=5))
             except Exception as e:
                 print(f"Error fetching from Kitco: {e}")
-        
+
         # Add specific gold/silver news from Google News
         gold_news = self._scrape_rss(
             "https://news.google.com/rss/search?q=gold+price+commodity&hl=en-US&gl=US&ceid=US:en",
@@ -131,11 +131,81 @@ class MarketResearcher:
             "https://news.google.com/rss/search?q=silver+price+commodity&hl=en-US&gl=US&ceid=US:en",
             "Silver News", True, limit=5
         )
-        
+
         commodities_news.extend(gold_news)
         commodities_news.extend(silver_news)
-        
+
         return commodities_news
+
+    def get_stock_fundamentals(self, symbol):
+        """Fetch fundamental data for a stock using yfinance."""
+        try:
+            # Try raw symbol first
+            ticker_sym = symbol
+            ticker = yf.Ticker(ticker_sym)
+            info = ticker.info
+
+            # If no info, try adding .NS for Indian stocks
+            if not info or not info.get('regularMarketPrice'):
+                ticker_sym = f"{symbol}.NS"
+                ticker = yf.Ticker(ticker_sym)
+                info = ticker.info
+
+            if info:
+                fundamentals = {
+                    "pe": info.get('trailingPE') or info.get('forwardPE'),
+                    "marketCap": info.get('marketCap'),
+                    "volume": info.get('volume'),
+                    "dividendYield": info.get('dividendYield'),
+                    "beta": info.get('beta'),
+                    "price": info.get('regularMarketPrice'),
+                    "change": info.get('previousClose') and info.get('regularMarketPrice') and
+                            ((info['regularMarketPrice'] - info['previousClose']) / info['previousClose'] * 100)
+                }
+                return fundamentals
+        except Exception as e:
+            print(f"Error fetching fundamentals for {symbol}: {e}")
+        return None
+
+    def get_stock_historical_data(self, symbol, period="1mo"):
+        """Fetch historical price data for sparkline and growth calculations."""
+        try:
+            # Try raw symbol first
+            ticker_sym = symbol
+            ticker = yf.Ticker(ticker_sym)
+            data = ticker.history(period=period)
+
+            # If no data, try adding .NS for Indian stocks
+            if data.empty:
+                ticker_sym = f"{symbol}.NS"
+                ticker = yf.Ticker(ticker_sym)
+                data = ticker.history(period=period)
+
+            if not data.empty:
+                # Calculate growth for different periods
+                current_price = data['Close'].iloc[-1]
+                growth = {}
+
+                if len(data) >= 5:
+                    growth['day1'] = ((current_price - data['Close'].iloc[-2]) / data['Close'].iloc[-2]) * 100
+                if len(data) >= 7:
+                    growth['week1'] = ((current_price - data['Close'].iloc[-7]) / data['Close'].iloc[-7]) * 100
+                if len(data) >= 30:
+                    growth['month1'] = ((current_price - data['Close'].iloc[-30]) / data['Close'].iloc[-30]) * 100
+                if len(data) >= 365:
+                    growth['year1'] = ((current_price - data['Close'].iloc[-365]) / data['Close'].iloc[-365]) * 100
+
+                # Sparkline data (last 10 points)
+                sparkline = data['Close'].tail(10).tolist()
+
+                return {
+                    'growth': growth,
+                    'sparkline': sparkline,
+                    'current_price': current_price
+                }
+        except Exception as e:
+            print(f"Error fetching historical data for {symbol}: {e}")
+        return None
 
     def _scrape_rss(self, url, source_name, is_international, limit=5, filter_sent=True):
         news_items = []
