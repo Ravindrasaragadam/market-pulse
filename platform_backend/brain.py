@@ -281,14 +281,14 @@ Provide a structured India market report that helps investors make informed deci
    ALSO include a JSON array at the end of your response:
    ```json
    [
-     {
+     {{
        "symbol": "RELIANCE",
        "stock_name": "Reliance Industries Ltd",
        "signal": "BUY",
        "reasoning": "Oil price surge expected due to OPEC+ cuts, refining margins expanding",
        "focus_areas": ["Energy", "Oil", "Large Cap"],
        "confidence": 0.85
-     }
+     }}
    ]
    ```
 
@@ -355,14 +355,14 @@ Provide a structured US market report that helps investors make informed decisio
    ALSO include a JSON array at the end of your response:
    ```json
    [
-     {
+     {{
        "symbol": "AAPL",
        "stock_name": "Apple Inc",
        "signal": "BUY",
        "reasoning": "Strong iPhone 16 demand and AI integration timeline boosting sentiment",
        "focus_areas": ["Technology", "Consumer Electronics", "AI Theme"],
        "confidence": 0.82
-     }
+     }}
    ]
    ```
 

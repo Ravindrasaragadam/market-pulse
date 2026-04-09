@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import CommoditiesWidget from "@/components/CommoditiesWidget";
+import CommoditiesCorner from "@/components/CommoditiesCorner";
 import TradingViewWidget from "@/components/TradingViewWidget";
 import StockGrid from "@/components/StockGrid";
 import AISummary from "@/components/AISummary";
@@ -31,8 +31,6 @@ export default function Dashboard() {
   const [sortBy, setSortBy] = useState<string>("date");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [market, setMarket] = useState<"INDIA" | "US">("INDIA");
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [showSearch, setShowSearch] = useState(false);
 
   useEffect(() => {
     async function fetchAlerts() {
@@ -97,7 +95,6 @@ export default function Dashboard() {
   const handleAddToWatchlist = (symbol: string) => {
     // Refresh watchlist after adding
     fetchWatchlist();
-    setShowSearch(false);
   };
   
   const filteredAlerts = alerts.filter(alert => {
@@ -114,9 +111,8 @@ export default function Dashboard() {
     return 0;
   });
 
-  const filteredStocks = stocks.filter(stock =>
-    stock.symbol && stock.symbol.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Use stocks directly - filtering is now done via search component
+  const displayStocks = stocks;
 
   return (
     <main className="min-h-screen bg-slate-950 text-white p-8">
@@ -166,37 +162,12 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Search Bar */}
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search stocks by symbol..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-800 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
-          />
-          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500">
-            🔍
-          </span>
-        </div>
-
-        {/* Add Stock Button */}
+        {/* Stock Search & Add */}
         <div className="mt-4">
-          <button
-            onClick={() => setShowSearch(!showSearch)}
-            className="bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-          >
-            {showSearch ? '✕ Close' : '+ Add Stock to Watchlist'}
-          </button>
-          
-          {showSearch && (
-            <div className="mt-3">
-              <StockSearch 
-                onAddToWatchlist={handleAddToWatchlist}
-                existingWatchlist={watchlistSymbols}
-              />
-            </div>
-          )}
+          <StockSearch 
+            onAddToWatchlist={handleAddToWatchlist}
+            existingWatchlist={watchlistSymbols}
+          />
         </div>
       </header>
 
@@ -224,15 +195,10 @@ export default function Dashboard() {
         {watchlist.length === 0 ? (
           <div className="bg-slate-900 border border-slate-800 p-8 rounded-xl text-center">
             <p className="text-slate-400 mb-4">Your watchlist is empty</p>
-            <button
-              onClick={() => setShowSearch(true)}
-              className="bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-            >
-              + Add Your First Stock
-            </button>
+            <p className="text-sm text-slate-500">Use the search above to add stocks</p>
           </div>
         ) : (
-          <StockGrid stocks={filteredStocks} />
+          <StockGrid stocks={displayStocks} />
         )}
       </div>
 
@@ -246,10 +212,8 @@ export default function Dashboard() {
         <AISummary market={market} />
       </div>
 
-      {/* Commodities Widget */}
-      <div className="mb-8">
-        <CommoditiesWidget />
-      </div>
+      {/* Commodities Corner Widget - Fixed Position */}
+      <CommoditiesCorner />
     </main>
   );
 }
