@@ -1,6 +1,7 @@
 import asyncio
 import os
 from telethon import TelegramClient, events
+from telethon.sessions import StringSession
 from .config import (
     TELEGRAM_API_ID, TELEGRAM_API_HASH, 
     TELEGRAM_BOT_TOKEN, TELEGRAM_SESSION_NAME,
@@ -9,6 +10,7 @@ from .config import (
 from .researcher import MarketResearcher
 from .brain import AIAnalyzer
 from .database import DatabaseManager
+import os
 
 class MarketMonitor:
     def __init__(self):
@@ -21,7 +23,14 @@ class MarketMonitor:
     async def _init_clients(self):
         """Initialize clients within the active async loop."""
         if not self.client:
-            self.client = TelegramClient(TELEGRAM_SESSION_NAME, TELEGRAM_API_ID, TELEGRAM_API_HASH)
+            session_str = os.getenv("TELEGRAM_STRING_SESSION")
+            if session_str:
+                session = StringSession(session_str)
+            else:
+                session = TELEGRAM_SESSION_NAME # Fallback to file session (local only)
+            
+            self.client = TelegramClient(session, TELEGRAM_API_ID, TELEGRAM_API_HASH)
+            
         if not self.bot_client:
             self.bot_client = TelegramClient('bot_session', TELEGRAM_API_ID, TELEGRAM_API_HASH)
 
