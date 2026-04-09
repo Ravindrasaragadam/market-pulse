@@ -95,8 +95,8 @@ export default function Dashboard() {
     return 0;
   });
 
-  const filteredStocks = stocks.filter(stock => 
-    stock.symbol.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredStocks = stocks.filter(stock =>
+    stock.symbol && stock.symbol.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (

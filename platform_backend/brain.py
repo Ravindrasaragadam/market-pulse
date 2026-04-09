@@ -28,15 +28,18 @@ class AIAnalyzer:
                 "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
             })
 
-        response = self.client.chat.completions.create(
-            model=NIM_MODEL,
-            messages=[{"role": "user", "content": content}],
-            max_tokens=500,
-            temperature=0.2
-        )
-        
-        return response.choices[0].message.content
-    
+        try:
+            response = self.client.chat.completions.create(
+                model=NIM_MODEL,
+                messages=[{"role": "user", "content": content}],
+                max_tokens=500,
+                temperature=0.2
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            print(f"Error analyzing market state: {e}")
+            return f"Unable to generate market state report due to API error: {str(e)}. Please check NVIDIA NIM API connection and try again."
+
     def analyze_india_market(self, india_data, image_path=None):
         """
         Analyzes India-specific market data with dedicated sections.
@@ -52,14 +55,17 @@ class AIAnalyzer:
                 "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
             })
 
-        response = self.client.chat.completions.create(
-            model=NIM_MODEL,
-            messages=[{"role": "user", "content": content}],
-            max_tokens=800,
-            temperature=0.2
-        )
-        
-        return response.choices[0].message.content
+        try:
+            response = self.client.chat.completions.create(
+                model=NIM_MODEL,
+                messages=[{"role": "user", "content": content}],
+                max_tokens=800,
+                temperature=0.2
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            print(f"Error analyzing India market: {e}")
+            return f"Unable to generate India market report due to API error: {str(e)}. Please check NVIDIA NIM API connection and try again."
     
     def analyze_us_market(self, us_data, image_path=None):
         """
@@ -76,14 +82,17 @@ class AIAnalyzer:
                 "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}
             })
 
-        response = self.client.chat.completions.create(
-            model=NIM_MODEL,
-            messages=[{"role": "user", "content": content}],
-            max_tokens=800,
-            temperature=0.2
-        )
-        
-        return response.choices[0].message.content
+        try:
+            response = self.client.chat.completions.create(
+                model=NIM_MODEL,
+                messages=[{"role": "user", "content": content}],
+                max_tokens=800,
+                temperature=0.2
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            print(f"Error analyzing US market: {e}")
+            return f"Unable to generate US market report due to API error: {str(e)}. Please check NVIDIA NIM API connection and try again."
     
     def analyze_daily_summary(self, research_data):
         """
@@ -93,24 +102,31 @@ class AIAnalyzer:
             {"type": "text", "text": self._build_daily_summary_prompt(research_data)}
         ]
 
-        response = self.client.chat.completions.create(
-            model=NIM_MODEL,
-            messages=[{"role": "user", "content": content}],
-            max_tokens=1000,
-            temperature=0.2
-        )
-        
-        return response.choices[0].message.content
+        try:
+            response = self.client.chat.completions.create(
+                model=NIM_MODEL,
+                messages=[{"role": "user", "content": content}],
+                max_tokens=1000,
+                temperature=0.2
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            print(f"Error analyzing daily summary: {e}")
+            return f"Unable to generate daily summary due to API error: {str(e)}. Please check NVIDIA NIM API connection and try again."
 
     def analyze_telegram_summary(self, research_data, report_type="INDIA"):
         """Analyze data for short Telegram summary."""
-        prompt = self._build_telegram_summary_prompt(research_data, report_type)
-        response = self.client.chat.completions.create(
-            model=NIM_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7
-        )
-        return response.choices[0].message.content
+        try:
+            prompt = self._build_telegram_summary_prompt(research_data, report_type)
+            response = self.client.chat.completions.create(
+                model=NIM_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            print(f"Error analyzing telegram summary: {e}")
+            return f"Unable to generate telegram summary due to API error: {str(e)}. Please check NVIDIA NIM API connection and try again."
     
     def _build_prompt(self, data):
         moves_str = "\n".join([f"- {m['symbol']}: {m['change']}% at ${m['price']}" for m in data['moves']])

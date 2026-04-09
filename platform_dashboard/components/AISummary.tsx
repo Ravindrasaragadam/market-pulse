@@ -65,7 +65,7 @@ export default function AISummary({ market }: AISummaryProps) {
           Last 30 Minutes
         </span>
       </h2>
-      <div className="prose prose-invert prose-sm max-w-none">
+      <div className="prose prose-invert prose-sm max-w-none prose-headings:text-white prose-h2:text-lg prose-h3:text-base prose-p:text-slate-300 prose-strong:text-white prose-ul:text-slate-300 prose-li:text-slate-300">
         <ReactMarkdown>{summary}</ReactMarkdown>
       </div>
     </div>
