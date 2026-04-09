@@ -16,17 +16,29 @@ class MarketResearcher:
         for symbol in self.watchlist:
             if not symbol: continue
             try:
-                # 1. Try raw symbol first (Standard for US Stocks: NVDA, DNA, TWST)
-                ticker_sym = symbol
-                ticker = yf.Ticker(ticker_sym)
-                # Use a small fast fetch to check if it exists
-                data = ticker.history(period="1d")
-                
-                # 2. If no data, try adding .NS (Indian National Stock Exchange)
-                if data.empty and "." not in symbol:
+                # For Indian market, use .NS suffix
+                # For US market, use raw symbol
+                if not self.include_international:
+                    # India only - always try .NS first
                     ticker_sym = f"{symbol}.NS"
                     ticker = yf.Ticker(ticker_sym)
                     data = ticker.history(period="1d")
+                    
+                    if data.empty:
+                        # Try raw symbol as fallback
+                        ticker_sym = symbol
+                        ticker = yf.Ticker(ticker_sym)
+                        data = ticker.history(period="1d")
+                else:
+                    # International/US - try raw symbol first, then .NS if fails
+                    ticker_sym = symbol
+                    ticker = yf.Ticker(ticker_sym)
+                    data = ticker.history(period="1d")
+                    
+                    if data.empty and "." not in symbol:
+                        ticker_sym = f"{symbol}.NS"
+                        ticker = yf.Ticker(ticker_sym)
+                        data = ticker.history(period="1d")
 
                 if not data.empty:
                     change = ((data['Close'].iloc[-1] - data['Open'].iloc[-1]) / data['Open'].iloc[-1]) * 100
@@ -38,7 +50,7 @@ class MarketResearcher:
                     if not filter_significant or abs(change) >= 2.0:
                         results.append(stats)
                 else:
-                    print(f"No price data found for {symbol} (tried raw and .NS)")
+                    print(f"No price data found for {symbol}")
             except Exception as e:
                 print(f"Error fetching price for {symbol}: {e}")
         return results
@@ -140,16 +152,28 @@ class MarketResearcher:
     def get_stock_fundamentals(self, symbol):
         """Fetch fundamental data for a stock using yfinance."""
         try:
-            # Try raw symbol first
-            ticker_sym = symbol
-            ticker = yf.Ticker(ticker_sym)
-            info = ticker.info
-
-            # If no info, try adding .NS for Indian stocks
-            if not info or not info.get('regularMarketPrice'):
+            # Use the same logic as get_stock_movements for NSE/US stocks
+            if not self.include_international:
+                # India only - always try .NS first
                 ticker_sym = f"{symbol}.NS"
                 ticker = yf.Ticker(ticker_sym)
                 info = ticker.info
+
+                if not info or not info.get('regularMarketPrice'):
+                    # Try raw symbol as fallback
+                    ticker_sym = symbol
+                    ticker = yf.Ticker(ticker_sym)
+                    info = ticker.info
+            else:
+                # International/US - try raw symbol first, then .NS if fails
+                ticker_sym = symbol
+                ticker = yf.Ticker(ticker_sym)
+                info = ticker.info
+
+                if not info or not info.get('regularMarketPrice') and "." not in symbol:
+                    ticker_sym = f"{symbol}.NS"
+                    ticker = yf.Ticker(ticker_sym)
+                    info = ticker.info
 
             if info:
                 fundamentals = {
@@ -170,16 +194,28 @@ class MarketResearcher:
     def get_stock_historical_data(self, symbol, period="1mo"):
         """Fetch historical price data for sparkline and growth calculations."""
         try:
-            # Try raw symbol first
-            ticker_sym = symbol
-            ticker = yf.Ticker(ticker_sym)
-            data = ticker.history(period=period)
-
-            # If no data, try adding .NS for Indian stocks
-            if data.empty:
+            # Use the same logic as get_stock_movements for NSE/US stocks
+            if not self.include_international:
+                # India only - always try .NS first
                 ticker_sym = f"{symbol}.NS"
                 ticker = yf.Ticker(ticker_sym)
                 data = ticker.history(period=period)
+
+                if data.empty:
+                    # Try raw symbol as fallback
+                    ticker_sym = symbol
+                    ticker = yf.Ticker(ticker_sym)
+                    data = ticker.history(period=period)
+            else:
+                # International/US - try raw symbol first, then .NS if fails
+                ticker_sym = symbol
+                ticker = yf.Ticker(ticker_sym)
+                data = ticker.history(period=period)
+
+                if data.empty and "." not in symbol:
+                    ticker_sym = f"{symbol}.NS"
+                    ticker = yf.Ticker(ticker_sym)
+                    data = ticker.history(period=period)
 
             if not data.empty:
                 # Calculate growth for different periods

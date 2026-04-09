@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import ReactMarkdown from 'react-markdown';
 
 interface AISummaryProps {
   market: "INDIA" | "US";
@@ -65,9 +66,7 @@ export default function AISummary({ market }: AISummaryProps) {
         </span>
       </h2>
       <div className="prose prose-invert prose-sm max-w-none">
-        <pre className="whitespace-pre-wrap font-sans text-slate-300 leading-relaxed">
-          {summary}
-        </pre>
+        <ReactMarkdown>{summary}</ReactMarkdown>
       </div>
     </div>
   );
