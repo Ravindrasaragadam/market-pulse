@@ -7,22 +7,22 @@ interface SentimentPieChartProps {
 }
 
 const COLORS = {
-  BUY: '#10b981',
-  SELL: '#ef4444',
-  NEUTRAL: '#6b7280'
+  'INDIA_MARKET': '#f97316',
+  'US_MARKET': '#3b82f6',
+  'DAILY_SUMMARY': '#a855f7'
 };
 
 export default function SentimentPieChart({ alerts }: SentimentPieChartProps) {
   const data = [
-    { name: 'BUY', value: alerts.filter(a => a.signal_type.includes('BUY')).length },
-    { name: 'SELL', value: alerts.filter(a => a.signal_type.includes('SELL')).length },
-    { name: 'NEUTRAL', value: alerts.filter(a => a.signal_type.includes('NEUTRAL')).length }
+    { name: 'India Market', value: alerts.filter(a => a.symbol === 'INDIA_MARKET').length },
+    { name: 'US Market', value: alerts.filter(a => a.symbol === 'US_MARKET').length },
+    { name: 'Daily Summary', value: alerts.filter(a => a.symbol === 'DAILY_SUMMARY').length }
   ].filter(d => d.value > 0);
 
   if (data.length === 0) {
     return (
       <div className="h-64 flex items-center justify-center">
-        <p className="text-slate-500">No signal data available</p>
+        <p className="text-slate-500">No report data available</p>
       </div>
     );
   }

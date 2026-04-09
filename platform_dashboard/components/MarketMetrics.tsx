@@ -6,48 +6,40 @@ interface MarketMetricsProps {
 
 export default function MarketMetrics({ alerts }: MarketMetricsProps) {
   const totalAlerts = alerts.length;
-  const buySignals = alerts.filter(a => a.signal_type.includes('BUY')).length;
-  const sellSignals = alerts.filter(a => a.signal_type.includes('SELL')).length;
-  const neutralSignals = alerts.filter(a => a.signal_type.includes('NEUTRAL')).length;
-  
-  const avgStrength = alerts.length > 0 
-    ? alerts.reduce((sum, a) => sum + (a.strength || 0), 0) / alerts.length 
-    : 0;
-
-  const accuracyScore = alerts.length > 0
-    ? alerts.reduce((sum, a) => sum + (a.accuracy_score || 0), 0) / alerts.length
-    : 0;
+  const indiaReports = alerts.filter(a => a.symbol === 'INDIA_MARKET').length;
+  const usReports = alerts.filter(a => a.symbol === 'US_MARKET').length;
+  const dailySummaries = alerts.filter(a => a.symbol === 'DAILY_SUMMARY').length;
 
   const metrics = [
     {
-      label: "Total Alerts",
+      label: "Total Reports",
       value: totalAlerts,
       color: "text-cyan-400",
       icon: "📊"
     },
     {
-      label: "BUY Signals",
-      value: buySignals,
-      color: "text-emerald-400",
-      icon: "📈"
+      label: "India Market",
+      value: indiaReports,
+      color: "text-orange-400",
+      icon: "🇮🇳"
     },
     {
-      label: "SELL Signals",
-      value: sellSignals,
-      color: "text-rose-400",
-      icon: "📉"
+      label: "US Market",
+      value: usReports,
+      color: "text-blue-400",
+      icon: "🇺🇸"
     },
     {
-      label: "Avg Strength",
-      value: avgStrength > 0 ? `${(avgStrength * 100).toFixed(0)}%` : "--",
+      label: "Daily Summary",
+      value: dailySummaries,
       color: "text-purple-400",
-      icon: "💪"
+      icon: "�"
     },
     {
-      label: "Accuracy",
-      value: accuracyScore > 0 ? `${(accuracyScore * 100).toFixed(0)}%` : "--",
+      label: "Report Types",
+      value: new Set(alerts.map(a => a.signal_type)).size,
       color: "text-amber-400",
-      icon: "🎯"
+      icon: "📋"
     }
   ];
 

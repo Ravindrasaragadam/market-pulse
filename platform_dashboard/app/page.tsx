@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import ReactMarkdown from 'react-markdown';
 import SentimentPieChart from "@/components/SentimentPieChart";
 import PriceMovementChart from "@/components/PriceMovementChart";
 import SignalTrendChart from "@/components/SignalTrendChart";
@@ -15,6 +16,7 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<string>("ALL");
   const [sortBy, setSortBy] = useState<string>("date");
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   useEffect(() => {
     async function fetchAlerts() {
@@ -33,6 +35,7 @@ export default function Dashboard() {
           alert.symbol === 'DAILY_SUMMARY'
         );
         setAlerts(relevantAlerts);
+        setLastUpdated(new Date());
       } catch (err: any) {
         console.error("Dashboard Fetch Error:", err);
         setError(err.message || "Failed to connect to Supabase. Check your environment variables.");
@@ -45,7 +48,7 @@ export default function Dashboard() {
   
   const filteredAlerts = alerts.filter(alert => {
     if (filterType === "ALL") return true;
-    return alert.signal_type.includes(filterType);
+    return alert.symbol === filterType;
   });
   
   const sortedAlerts = [...filteredAlerts].sort((a, b) => {
@@ -69,7 +72,14 @@ export default function Dashboard() {
         <div className="flex gap-4">
           <div className="bg-slate-900 px-4 py-2 rounded-lg border border-slate-800">
             <span className="text-sm font-medium text-slate-500 block uppercase">Market Status</span>
-            <span className="text-emerald-400 font-bold">● LIVE (NSE/BSE)</span>
+            <div className="flex items-center gap-2">
+              <span className="text-emerald-400 font-bold">● LIVE (NSE/BSE)</span>
+              {lastUpdated && (
+                <span className="text-slate-500 text-xs">
+                  Last updated: {lastUpdated.toLocaleTimeString()}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -87,15 +97,15 @@ export default function Dashboard() {
       {/* Charts Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl">
-          <h2 className="text-xl font-semibold mb-4">Sentiment Distribution</h2>
+          <h2 className="text-xl font-semibold mb-4">Report Distribution</h2>
           <SentimentPieChart alerts={alerts} />
         </div>
         <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl">
-          <h2 className="text-xl font-semibold mb-4">Price Movements</h2>
+          <h2 className="text-xl font-semibold mb-4">Reports by Type</h2>
           <PriceMovementChart alerts={alerts} />
         </div>
         <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl">
-          <h2 className="text-xl font-semibold mb-4">Signal Trends</h2>
+          <h2 className="text-xl font-semibold mb-4">Report Types</h2>
           <SignalTrendChart alerts={alerts} />
         </div>
       </div>
@@ -113,10 +123,10 @@ export default function Dashboard() {
                 onChange={(e) => setFilterType(e.target.value)}
                 className="bg-slate-900 border border-slate-700 text-white px-3 py-2 rounded-lg text-sm"
               >
-                <option value="ALL">All Signals</option>
-                <option value="BUY">BUY Only</option>
-                <option value="SELL">SELL Only</option>
-                <option value="NEUTRAL">NEUTRAL Only</option>
+                <option value="ALL">All Reports</option>
+                <option value="INDIA_MARKET">India Market</option>
+                <option value="US_MARKET">US Market</option>
+                <option value="DAILY_SUMMARY">Daily Summary</option>
               </select>
               <select
                 value={sortBy}
@@ -152,23 +162,21 @@ export default function Dashboard() {
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
-                      alert.signal_type.includes('BUY') ? 'bg-emerald-500/20 text-emerald-400' : 
-                      alert.signal_type.includes('SELL') ? 'bg-rose-500/20 text-rose-400' : 'bg-slate-700 text-slate-300'
+                      alert.symbol === 'INDIA_MARKET' ? 'bg-orange-500/20 text-orange-400' : 
+                      alert.symbol === 'US_MARKET' ? 'bg-blue-500/20 text-blue-400' : 
+                      'bg-purple-500/20 text-purple-400'
                     }`}>
-                      {alert.signal_type}
+                      {alert.symbol.replace('_', ' ')}
                     </span>
-                    <h3 className="text-xl font-bold mt-2">{alert.symbol}</h3>
-                    {alert.strength && (
-                      <span className="text-sm text-slate-500">Strength: {Math.round(alert.strength * 100)}%</span>
-                    )}
+                    <span className="text-sm text-slate-400 ml-2">{alert.signal_type.replace('_', ' ')}</span>
                   </div>
                   <span className="text-slate-500 text-sm">
                     {new Date(alert.created_at).toLocaleString()}
                   </span>
                 </div>
-                <p className="text-slate-300 leading-relaxed">
-                  {alert.reasoning}
-                </p>
+                <div className="text-slate-300 leading-relaxed prose prose-invert prose-sm max-w-none">
+                  <ReactMarkdown>{alert.reasoning}</ReactMarkdown>
+                </div>
               </div>
             ))
           )}

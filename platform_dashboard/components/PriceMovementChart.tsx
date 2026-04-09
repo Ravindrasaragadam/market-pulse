@@ -7,19 +7,36 @@ interface PriceMovementChartProps {
 }
 
 export default function PriceMovementChart({ alerts }: PriceMovementChartProps) {
-  const data = alerts.slice(0, 10).map(alert => ({
-    symbol: alert.symbol,
-    change: alert.metadata?.change || 0,
-    signal_type: alert.signal_type
-  }));
+  // Count reports by type
+  const reportCounts = alerts.reduce((acc, alert) => {
+    const symbol = alert.symbol;
+    if (!acc[symbol]) {
+      acc[symbol] = 0;
+    }
+    acc[symbol]++;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const data = Object.entries(reportCounts)
+    .map(([symbol, count]) => ({
+      symbol: symbol.replace('_', ' '),
+      count: count
+    }))
+    .slice(0, 10);
 
   if (data.length === 0) {
     return (
       <div className="h-64 flex items-center justify-center">
-        <p className="text-slate-500">No price movement data available</p>
+        <p className="text-slate-500">No report data available</p>
       </div>
     );
   }
+
+  const COLORS = {
+    'India Market': '#f97316',
+    'US Market': '#3b82f6',
+    'Daily Summary': '#a855f7'
+  };
 
   return (
     <ResponsiveContainer width="100%" height={256}>
@@ -33,19 +50,17 @@ export default function PriceMovementChart({ alerts }: PriceMovementChartProps) 
         <YAxis 
           stroke="#94a3b8"
           fontSize={12}
-          tickFormatter={(value) => `${value}%`}
         />
         <Tooltip 
           contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
           itemStyle={{ color: '#e2e8f0' }}
-          formatter={(value: any) => `${typeof value === 'number' ? value.toFixed(2) : value}%`}
-          labelFormatter={(label) => `Symbol: ${label}`}
+          formatter={(value: any) => `${value} reports`}
         />
-        <Bar dataKey="change" radius={[4, 4, 0, 0]}>
+        <Bar dataKey="count" radius={[4, 4, 0, 0]}>
           {data.map((entry, index) => (
             <Cell 
               key={`cell-${index}`} 
-              fill={entry.change >= 0 ? '#10b981' : '#ef4444'} 
+              fill={COLORS[entry.symbol as keyof typeof COLORS] || '#6b7280'} 
             />
           ))}
         </Bar>
