@@ -2,11 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import ReactMarkdown from 'react-markdown';
-import SentimentPieChart from "@/components/SentimentPieChart";
-import PriceMovementChart from "@/components/PriceMovementChart";
-import SignalTrendChart from "@/components/SignalTrendChart";
-import MarketMetrics from "@/components/MarketMetrics";
 import CommoditiesWidget from "@/components/CommoditiesWidget";
 import TradingViewWidget from "@/components/TradingViewWidget";
 import StockGrid from "@/components/StockGrid";
@@ -51,160 +46,39 @@ export default function Dashboard() {
     fetchAlerts();
   }, []);
 
-  // Mock stock data for now - will be replaced with real data from database
+  // Fetch stock signals from database
   useEffect(() => {
-    const indiaStocks = [
-      {
-        symbol: "TCS",
-        price: 3845.50,
-        change: 2.5,
-        signal: "BUY" as const,
-        sparklineData: [3800, 3820, 3810, 3830, 3845],
-        fundamentals: { pe: 28.5, marketCap: "14.5T", volume: "2.1M" },
-        growth: { day1: 2.5, week1: 3.2, month1: 5.1, year1: 12.3 }
-      },
-      {
-        symbol: "INFY",
-        price: 1425.30,
-        change: -1.2,
-        signal: "SELL" as const,
-        sparklineData: [1450, 1440, 1435, 1430, 1425],
-        fundamentals: { pe: 24.2, marketCap: "5.8T", volume: "8.5M" },
-        growth: { day1: -1.2, week1: -0.8, month1: 2.1, year1: 8.5 }
-      },
-      {
-        symbol: "RELIANCE",
-        price: 2580.75,
-        change: 0.8,
-        signal: "NEUTRAL" as const,
-        sparklineData: [2570, 2575, 2578, 2580, 2580],
-        fundamentals: { pe: 22.8, marketCap: "17.2T", volume: "5.3M" },
-        growth: { day1: 0.8, week1: 1.5, month1: 3.2, year1: 15.8 }
-      },
-      {
-        symbol: "HDFC",
-        price: 1678.90,
-        change: 1.5,
-        signal: "BUY" as const,
-        sparklineData: [1660, 1665, 1670, 1675, 1678],
-        fundamentals: { pe: 19.5, marketCap: "9.8T", volume: "3.2M" },
-        growth: { day1: 1.5, week1: 2.1, month1: 4.5, year1: 18.2 }
-      },
-      {
-        symbol: "ICICI",
-        price: 1085.40,
-        change: -0.5,
-        signal: "NEUTRAL" as const,
-        sparklineData: [1090, 1088, 1086, 1085, 1085],
-        fundamentals: { pe: 18.2, marketCap: "6.2T", volume: "7.8M" },
-        growth: { day1: -0.5, week1: 0.3, month1: 2.8, year1: 22.5 }
-      },
-      {
-        symbol: "SBIN",
-        price: 785.60,
-        change: 3.2,
-        signal: "BUY" as const,
-        sparklineData: [760, 770, 775, 780, 785],
-        fundamentals: { pe: 12.5, marketCap: "7.0T", volume: "12.5M" },
-        growth: { day1: 3.2, week1: 4.5, month1: 8.2, year1: 35.8 }
-      },
-      {
-        symbol: "WIPRO",
-        price: 456.80,
-        change: -2.1,
-        signal: "SELL" as const,
-        sparklineData: [470, 465, 460, 458, 456],
-        fundamentals: { pe: 21.5, marketCap: "2.5T", volume: "15.2M" },
-        growth: { day1: -2.1, week1: -3.5, month1: -5.2, year1: -8.5 }
-      },
-      {
-        symbol: "TATASTEEL",
-        price: 145.25,
-        change: 1.8,
-        signal: "BUY" as const,
-        sparklineData: [142, 143, 144, 145, 145],
-        fundamentals: { pe: 15.2, marketCap: "1.8T", volume: "8.5M" },
-        growth: { day1: 1.8, week1: 3.2, month1: 6.5, year1: 28.5 }
-      }
-    ];
+    async function fetchStockSignals() {
+      try {
+        const { data, error: sbError } = await supabase
+          .from("alerts")
+          .select("*")
+          .not("stock_symbol", "is", null)
+          .order("created_at", { ascending: false })
+          .limit(50);
+        
+        if (sbError) throw sbError;
 
-    const usStocks = [
-      {
-        symbol: "AAPL",
-        price: 178.50,
-        change: 1.2,
-        signal: "BUY" as const,
-        sparklineData: [175, 176, 177, 178, 178],
-        fundamentals: { pe: 28.5, marketCap: "2.8T", volume: "52.1M" },
-        growth: { day1: 1.2, week1: 2.8, month1: 4.5, year1: 15.3 }
-      },
-      {
-        symbol: "MSFT",
-        price: 425.30,
-        change: 0.8,
-        signal: "BUY" as const,
-        sparklineData: [420, 422, 424, 425, 425],
-        fundamentals: { pe: 35.2, marketCap: "3.2T", volume: "22.5M" },
-        growth: { day1: 0.8, week1: 1.5, month1: 3.2, year1: 28.5 }
-      },
-      {
-        symbol: "GOOGL",
-        price: 156.75,
-        change: -0.5,
-        signal: "NEUTRAL" as const,
-        sparklineData: [158, 157, 157, 156, 156],
-        fundamentals: { pe: 24.8, marketCap: "2.0T", volume: "18.3M" },
-        growth: { day1: -0.5, week1: 0.3, month1: 2.1, year1: 18.2 }
-      },
-      {
-        symbol: "NVDA",
-        price: 895.60,
-        change: 3.5,
-        signal: "BUY" as const,
-        sparklineData: [870, 880, 885, 890, 895],
-        fundamentals: { pe: 65.5, marketCap: "2.2T", volume: "45.2M" },
-        growth: { day1: 3.5, week1: 5.2, month1: 12.5, year1: 185.3 }
-      },
-      {
-        symbol: "TSLA",
-        price: 245.40,
-        change: -2.1,
-        signal: "SELL" as const,
-        sparklineData: [255, 250, 248, 246, 245],
-        fundamentals: { pe: 42.2, marketCap: "780B", volume: "112.5M" },
-        growth: { day1: -2.1, week1: -4.5, month1: -8.2, year1: -15.8 }
-      },
-      {
-        symbol: "AMZN",
-        price: 178.90,
-        change: 1.8,
-        signal: "BUY" as const,
-        sparklineData: [175, 176, 177, 178, 178],
-        fundamentals: { pe: 58.5, marketCap: "1.9T", volume: "35.2M" },
-        growth: { day1: 1.8, week1: 3.2, month1: 6.5, year1: 42.5 }
-      },
-      {
-        symbol: "META",
-        price: 505.25,
-        change: 2.2,
-        signal: "BUY" as const,
-        sparklineData: [495, 498, 500, 502, 505],
-        fundamentals: { pe: 32.8, marketCap: "1.3T", volume: "18.5M" },
-        growth: { day1: 2.2, week1: 4.5, month1: 8.5, year1: 125.3 }
-      },
-      {
-        symbol: "AMD",
-        price: 185.80,
-        change: 4.2,
-        signal: "BUY" as const,
-        sparklineData: [175, 178, 180, 183, 185],
-        fundamentals: { pe: 45.2, marketCap: "300B", volume: "65.2M" },
-        growth: { day1: 4.2, week1: 8.5, month1: 15.2, year1: 95.8 }
-      }
-    ];
+        // Transform database alerts to stock format
+        const stockData = (data || [])
+          .filter(alert => alert.stock_symbol)
+          .map(alert => ({
+            symbol: alert.stock_symbol,
+            price: alert.metadata?.price || 0,
+            change: alert.metadata?.change || 0,
+            signal: alert.signal_type || "NEUTRAL",
+            sparklineData: alert.growth_data?.sparkline || [],
+            fundamentals: alert.fundamentals || {},
+            growth: alert.growth_data || {}
+          }));
 
-    setStocks(market === "INDIA" ? indiaStocks : usStocks);
-  }, [market]);
+        setStocks(stockData);
+      } catch (err: any) {
+        console.error("Stock Fetch Error:", err);
+      }
+    }
+    fetchStockSignals();
+  }, []);
   
   const filteredAlerts = alerts.filter(alert => {
     if (filterType === "ALL") return true;

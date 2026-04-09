@@ -16,14 +16,18 @@ class DatabaseManager:
                 self.client = None
                 print(f"Error: Failed to initialize Supabase client: {e}")
 
-    def save_alert(self, symbol, signal, reasoning, strength=None, metadata=None):
+    def save_alert(self, symbol, signal, reasoning, strength=None, metadata=None, stock_symbol=None, fundamentals=None, growth_data=None, signal_strength=None):
         if not self.client: return
         data = {
             "symbol": symbol,
             "signal_type": signal,
             "reasoning": reasoning,
             "strength": strength,
-            "metadata": metadata
+            "metadata": metadata,
+            "stock_symbol": stock_symbol,
+            "fundamentals": fundamentals,
+            "growth_data": growth_data,
+            "signal_strength": signal_strength
         }
         return self.client.table("alerts").insert(data).execute()
 

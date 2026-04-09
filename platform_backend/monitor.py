@@ -121,6 +121,18 @@ class MarketMonitor:
             if india_analysis:
                 await self.send_raw_alert(india_analysis, "🇮🇳 India Market Pulse")
                 self.db.save_alert("INDIA_MARKET", "INDIA_REPORT", india_analysis)
+                
+                # Extract and save individual stock signals
+                stock_signals = self.analyzer.extract_stock_signals(india_analysis)
+                for signal in stock_signals:
+                    self.db.save_alert(
+                        symbol="INDIA_STOCK",
+                        signal=signal['signal'],
+                        reasoning=signal['reasoning'],
+                        stock_symbol=signal['symbol'],
+                        signal_strength=0.8 if signal['signal'] == 'BUY' else 0.2 if signal['signal'] == 'SELL' else 0.5,
+                        metadata={'change': signal.get('change', 0)}
+                    )
             
             # US Report
             us_data = self.researcher.collect_us_data()
@@ -128,6 +140,18 @@ class MarketMonitor:
             if us_analysis:
                 await self.send_raw_alert(us_analysis, "🇺🇸 US Market Pulse")
                 self.db.save_alert("US_MARKET", "US_REPORT", us_analysis)
+                
+                # Extract and save individual stock signals
+                stock_signals = self.analyzer.extract_stock_signals(us_analysis)
+                for signal in stock_signals:
+                    self.db.save_alert(
+                        symbol="US_STOCK",
+                        signal=signal['signal'],
+                        reasoning=signal['reasoning'],
+                        stock_symbol=signal['symbol'],
+                        signal_strength=0.8 if signal['signal'] == 'BUY' else 0.2 if signal['signal'] == 'SELL' else 0.5,
+                        metadata={'change': signal.get('change', 0)}
+                    )
         else:
             # Single combined report (India only)
             research_data = self.researcher.collect_all_data()
