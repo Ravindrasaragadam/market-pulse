@@ -116,6 +116,9 @@ class AlertManager:
                         'error': str(response),
                         'timestamp': datetime.now()
                     })
+                    # Limit failed deliveries list to prevent unbounded memory growth
+                    if len(self.failed_deliveries) > 1000:
+                        self.failed_deliveries = self.failed_deliveries[-1000:]
                     print(f"[AlertManager] Failed to send via {name}: {response}")
                 else:
                     results[name] = response

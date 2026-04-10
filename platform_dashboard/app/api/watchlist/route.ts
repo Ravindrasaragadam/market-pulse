@@ -65,13 +65,17 @@ export async function GET() {
     // Get latest alerts for all these stocks
     let latestAlerts: any[] = [];
     if (allSymbols.length > 0) {
-      const { data: alertsData } = await supabase
+      const { data: alertsData, error: alertsError } = await supabase
         .from('alerts')
         .select('*')
         .in('stock_symbol', allSymbols)
         .order('created_at', { ascending: false })
         .limit(100);
-      
+
+      if (alertsError) {
+        console.error('Alerts fetch error:', alertsError);
+      }
+
       latestAlerts = alertsData || [];
     }
 

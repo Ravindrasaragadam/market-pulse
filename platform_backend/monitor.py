@@ -158,6 +158,7 @@ class MarketMonitor:
 
         # 3. Daily/Periodic Market Review (Research + News)
         is_daily_summary = self.is_daily_summary_time()
+        research_data = {}  # Initialize to prevent undefined variable
 
         if is_daily_summary:
             print("Daily summary time - generating comprehensive report")
@@ -169,6 +170,7 @@ class MarketMonitor:
         elif INCLUDE_INTERNATIONAL:
             # Send separate India and US reports
             print("Generating separate India and US market reports")
+            research_data = self.researcher.collect_all_data()  # For image analysis context
 
             # India Report
             india_data = self.researcher.collect_india_data()
@@ -190,6 +192,8 @@ class MarketMonitor:
                         reasoning=signal.get('reasoning', signal.get('reason', '')),
                         stock_symbol=signal['symbol'],
                         signal_strength=signal.get('confidence', 0.7),
+                        stop_loss=signal.get('stop_loss'),
+                        target=signal.get('target'),
                         metadata={
                             'change': signal.get('change', 0),
                             'focus_areas': signal.get('focus_areas', signal.get('tags', [])),
@@ -219,6 +223,8 @@ class MarketMonitor:
                         reasoning=signal.get('reasoning', signal.get('reason', '')),
                         stock_symbol=signal['symbol'],
                         signal_strength=signal.get('confidence', 0.7),
+                        stop_loss=signal.get('stop_loss'),
+                        target=signal.get('target'),
                         metadata={
                             'change': signal.get('change', 0),
                             'focus_areas': signal.get('focus_areas', signal.get('tags', [])),

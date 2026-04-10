@@ -57,7 +57,7 @@ function checkRateLimit(): { allowed: boolean; remaining: number; resetIn: numbe
   state.requests = state.requests.filter(timestamp => now - timestamp < WINDOW_MS);
   
   const remaining = MAX_REQUESTS - state.requests.length;
-  const resetIn = state.requests.length > 0 ? WINDOW_MS - (now - state.requests[0]) : 0;
+  const resetIn = state.requests.length > 0 ? WINDOW_MS - (now - state.requests[state.requests.length - 1]) : 0;
   
   saveRateLimitState(state);
   

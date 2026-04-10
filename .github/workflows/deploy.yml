@@ -42,6 +42,7 @@ jobs:
           TELEGRAM_SESSION_NAME: ${{ secrets.TELEGRAM_SESSION_NAME }}
           TELEGRAM_ALERT_CHAT_ID: ${{ secrets.TELEGRAM_ALERT_CHAT_ID }}
           TELEGRAM_ALLOWED_CHATS: ${{ secrets.TELEGRAM_ALLOWED_CHATS }}
+          ENABLE_TELEGRAM_ALERTS: ${{ secrets.ENABLE_TELEGRAM_ALERTS }}
           NVIDIA_NIM_API_KEY: ${{ secrets.NVIDIA_NIM_API_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}

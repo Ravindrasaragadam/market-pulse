@@ -235,7 +235,7 @@ export default function StockDetailPage() {
             <div>
               <p className="text-slate-500 text-sm">Current Price</p>
               <p className="text-4xl font-bold">
-                ₹{priceData?.price.toFixed(2) || '--.--'}
+                {stockInfo?.exchange === 'US' ? '$' : '₹'}{priceData?.price.toFixed(2) || '--.--'}
               </p>
               <p className={`text-xl font-semibold ${changeColor}`}>
                 {priceData ? `${changePrefix}${priceData.change.toFixed(2)}%` : ''}
@@ -259,19 +259,19 @@ export default function StockDetailPage() {
                   <div className="text-center">
                     <div className="text-xs text-slate-500">Lowest</div>
                     <div className="text-sm font-semibold text-red-400">
-                      ₹{Math.min(...historicalData.map(d => d.price)).toFixed(2)}
+                      {stockInfo?.exchange === 'US' ? '$' : '₹'}{Math.min(...historicalData.map(d => d.price)).toFixed(2)}
                     </div>
                   </div>
                   <div className="text-center">
                     <div className="text-xs text-slate-500">Average</div>
                     <div className="text-sm font-semibold text-amber-400">
-                      ₹{(historicalData.reduce((a, b) => a + b.price, 0) / historicalData.length).toFixed(2)}
+                      {stockInfo?.exchange === 'US' ? '$' : '₹'}{(historicalData.reduce((a, b) => a + b.price, 0) / historicalData.length).toFixed(2)}
                     </div>
                   </div>
                   <div className="text-center">
                     <div className="text-xs text-slate-500">Highest</div>
                     <div className="text-sm font-semibold text-emerald-400">
-                      ₹{Math.max(...historicalData.map(d => d.price)).toFixed(2)}
+                      {stockInfo?.exchange === 'US' ? '$' : '₹'}{Math.max(...historicalData.map(d => d.price)).toFixed(2)}
                     </div>
                   </div>
                 </div>

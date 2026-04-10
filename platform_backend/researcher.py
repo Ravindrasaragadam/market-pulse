@@ -289,7 +289,7 @@ class MarketResearcher:
                 ticker = yf.Ticker(ticker_sym)
                 info = ticker.info
 
-                if not info or not info.get('regularMarketPrice') and "." not in symbol:
+                if (not info or not info.get('regularMarketPrice')) and "." not in symbol:
                     ticker_sym = f"{symbol}.NS"
                     ticker = yf.Ticker(ticker_sym)
                     info = ticker.info

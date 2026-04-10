@@ -2,8 +2,8 @@ import base64
 import time
 from openai import OpenAI
 from .config import (
-    NVIDIA_NIM_API_KEY, NIM_BASE_URL, NIM_MODEL, MODEL_CONFIG
-), FOCUS_KEYWORDS
+    NVIDIA_NIM_API_KEY, NIM_BASE_URL, NIM_MODEL, MODEL_CONFIG, FOCUS_KEYWORDS
+)
 
 class AIAnalyzer:
     def __init__(self):
