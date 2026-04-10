@@ -10,6 +10,29 @@ class MarketResearcher:
         self.include_international = INCLUDE_INTERNATIONAL
         self.db = db
 
+    def _is_likely_us_stock(self, symbol):
+        """Detect if symbol is likely a US stock based on patterns."""
+        # US stocks are typically 1-4 uppercase letters
+        # Indian stocks are often longer or have specific patterns
+        if not symbol:
+            return False
+        
+        # If symbol already has exchange suffix, it's not US
+        if '.' in symbol:
+            return False
+        
+        # US stocks: 1-4 chars, all uppercase, common patterns
+        if len(symbol) <= 4 and symbol.isalpha() and symbol.isupper():
+            # Check against common US stock patterns
+            # Single letters are often US (F, T, etc.)
+            if len(symbol) <= 1:
+                return True
+            # 2-4 letter all caps are likely US
+            return True
+        
+        # Longer symbols or mixed case are likely Indian
+        return False
+
     def get_stock_movements(self, filter_significant=True, watchlist=None):
         """Checks for movements in the watchlist. If filter_significant is False, returns all (for AI)."""
         # Use dynamic watchlist if none provided
@@ -26,8 +49,17 @@ class MarketResearcher:
                 data = None
                 exchange_found = None
                 
-                # Try different exchange suffixes
-                suffixes = ['.NS', '.BO', '']  # NSE, BSE, raw
+                # Determine if this is a US or Indian stock
+                is_us = self._is_likely_us_stock(symbol)
+                
+                if is_us:
+                    # For US stocks, use raw symbol only
+                    suffixes = ['']
+                    print(f"Detected US stock: {symbol}")
+                else:
+                    # For Indian stocks, try NSE, BSE, then raw
+                    suffixes = ['.NS', '.BO', '']
+                    print(f"Detected Indian stock: {symbol}")
                 
                 for suffix in suffixes:
                     try:
@@ -41,6 +73,8 @@ class MarketResearcher:
                                 exchange_found = 'NSE'
                             elif suffix == '.BO':
                                 exchange_found = 'BSE'
+                            elif is_us:
+                                exchange_found = 'US'
                             else:
                                 exchange_found = 'UNKNOWN'
                             print(f"Found data for {symbol} on {exchange_found}")

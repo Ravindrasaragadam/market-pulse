@@ -21,6 +21,16 @@ const RATE_LIMIT_KEY = 'ai_analyzer_rate_limit';
 const MAX_REQUESTS = 5;
 const WINDOW_MS = 60 * 1000; // 1 minute
 
+// Cache settings: 1 hour TTL
+const CACHE_KEY_PREFIX = 'ai_analysis_cache_';
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+interface CachedAnalysis {
+  analysis: AnalysisResult;
+  timestamp: number;
+  symbol: string;
+}
+
 interface RateLimitState {
   requests: number[]; // timestamps of requests
 }
@@ -64,15 +74,55 @@ function recordRequest() {
   saveRateLimitState(state);
 }
 
+// Cache functions
+function getCachedAnalysis(symbol: string): AnalysisResult | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const cached = localStorage.getItem(`${CACHE_KEY_PREFIX}${symbol}`);
+    if (cached) {
+      const parsed: CachedAnalysis = JSON.parse(cached);
+      const now = Date.now();
+      if (now - parsed.timestamp < CACHE_TTL_MS && parsed.symbol === symbol) {
+        return parsed.analysis;
+      }
+    }
+  } catch (e) {
+    console.error('Cache read error:', e);
+  }
+  return null;
+}
+
+function saveCachedAnalysis(symbol: string, analysis: AnalysisResult) {
+  if (typeof window === 'undefined') return;
+  try {
+    const cacheData: CachedAnalysis = {
+      analysis,
+      timestamp: Date.now(),
+      symbol
+    };
+    localStorage.setItem(`${CACHE_KEY_PREFIX}${symbol}`, JSON.stringify(cacheData));
+  } catch (e) {
+    console.error('Cache write error:', e);
+  }
+}
+
 export default function AIAnalyzer({ symbol, onClose }: AIAnalyzerProps) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [rateLimitInfo, setRateLimitInfo] = useState({ allowed: true, remaining: 5, resetIn: 0 });
+  const [isCached, setIsCached] = useState(false);
 
   useEffect(() => {
     setRateLimitInfo(checkRateLimit());
-  }, []);
+    
+    // Check for cached analysis on mount
+    const cached = getCachedAnalysis(symbol);
+    if (cached) {
+      setResult(cached);
+      setIsCached(true);
+    }
+  }, [symbol]);
 
   const handleAnalyze = async () => {
     const limit = checkRateLimit();
@@ -102,6 +152,9 @@ export default function AIAnalyzer({ symbol, onClose }: AIAnalyzerProps) {
 
       const data = await response.json();
       setResult(data.analysis);
+      setIsCached(false);
+      // Save to localStorage cache
+      saveCachedAnalysis(symbol, data.analysis);
     } catch (err) {
       setError('Failed to analyze. Please try again.');
     } finally {
@@ -134,13 +187,20 @@ export default function AIAnalyzer({ symbol, onClose }: AIAnalyzerProps) {
         <div className="p-6">
           {/* Rate Limit Indicator */}
           <div className="flex justify-between items-center mb-4">
-            <span className="text-sm text-slate-400">
-              Requests remaining: 
-              <span className={rateLimitInfo.remaining <= 1 ? 'text-rose-400' : 'text-emerald-400'}>
-                {rateLimitInfo.remaining}/{MAX_REQUESTS}
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-slate-400">
+                Requests remaining:
+                <span className={rateLimitInfo.remaining <= 1 ? 'text-rose-400' : 'text-emerald-400'}>
+                  {rateLimitInfo.remaining}/{MAX_REQUESTS}
+                </span>
+                /min
               </span>
-              /min
-            </span>
+              {isCached && (
+                <span className="text-xs px-2 py-1 bg-amber-500/20 text-amber-400 rounded border border-amber-500/30">
+                  Cached
+                </span>
+              )}
+            </div>
             {rateLimitInfo.resetIn > 0 && rateLimitInfo.remaining === 0 && (
               <span className="text-xs text-rose-400">
                 Resets in {Math.ceil(rateLimitInfo.resetIn / 1000)}s

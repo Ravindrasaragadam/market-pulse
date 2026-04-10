@@ -1,6 +1,14 @@
 name: Market Pulse Scanner (Serverless)
 
 on:
+  push:
+    branches:
+      - develop
+      - main
+      - master
+    paths:
+      - 'platform_backend/**'
+      - '.github/workflows/**'
   schedule:
     - cron: '*/60 * * * *' # Run every 60 minutes
   workflow_dispatch:      # Allow manual trigger from GitHub UI

@@ -25,6 +25,48 @@ interface StockAlert {
   fundamentals: any;
 }
 
+interface HistoricalData {
+  date: string;
+  price: number;
+  change: number;
+}
+
+// Simple Sparkline Component
+function SparklineChart({ data }: { data: HistoricalData[] }) {
+  if (data.length < 2) return null;
+  
+  const width = 100;
+  const height = 40;
+  const padding = 2;
+  
+  const prices = data.map(d => d.price);
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  const range = max - min || 1;
+  
+  const points = data.map((d, i) => {
+    const x = (i / (data.length - 1)) * (width - 2 * padding) + padding;
+    const y = height - ((d.price - min) / range) * (height - 2 * padding) - padding;
+    return `${x},${y}`;
+  }).join(' ');
+  
+  const isPositive = data[data.length - 1].change >= 0;
+  const color = isPositive ? '#10b981' : '#ef4444';
+  
+  return (
+    <svg width="100%" height="80" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+      <polyline
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        points={points}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export default function StockDetailPage() {
   const params = useParams();
   const symbol = params.symbol as string;
@@ -32,6 +74,7 @@ export default function StockDetailPage() {
   const [stockInfo, setStockInfo] = useState<StockInfo | null>(null);
   const [alerts, setAlerts] = useState<StockAlert[]>([]);
   const [priceData, setPriceData] = useState<{ price: number; change: number } | null>(null);
+  const [historicalData, setHistoricalData] = useState<HistoricalData[]>([]);
   const [showAIAnalyzer, setShowAIAnalyzer] = useState(false);
 
   useEffect(() => {
@@ -71,6 +114,30 @@ export default function StockDetailPage() {
           }
         } catch (priceError) {
           console.error('Price fetch error:', priceError);
+        }
+
+        // Fetch historical data from alerts (growth_data)
+        try {
+          const { data: growthData, error: growthError } = await supabase
+            .from('alerts')
+            .select('metadata, created_at')
+            .eq('stock_symbol', symbol.toUpperCase())
+            .not('metadata', 'is', null)
+            .order('created_at', { ascending: true })
+            .limit(30);
+
+          if (!growthError && growthData) {
+            const historical: HistoricalData[] = growthData
+              .filter((alert: any) => alert.metadata?.price)
+              .map((alert: any) => ({
+                date: alert.created_at,
+                price: alert.metadata.price,
+                change: alert.metadata.change || 0
+              }));
+            setHistoricalData(historical);
+          }
+        } catch (histError) {
+          console.error('Historical data fetch error:', histError);
         }
 
       } catch (error) {
@@ -175,14 +242,48 @@ export default function StockDetailPage() {
               </p>
             </div>
           </div>
-          {/* TradingView Chart */}
-          <div className="h-80 w-full">
-            <iframe
-              src={`https://s.tradingview.com/embed-widget/advanced-chart/?symbol=NSE%3A${symbol.toUpperCase()}&interval=D&theme=dark&style=1&timezone=Asia%2FKolkata&hide_top_toolbar=true&hide_legend=true`}
-              className="w-full h-full rounded-lg"
-              frameBorder="0"
-              allowTransparency
-            />
+          {/* Price History Chart */}
+          <div className="h-80 w-full bg-slate-950 rounded-lg p-4 flex flex-col">
+            <h3 className="text-amber-400 text-sm font-semibold mb-4">Price History (from our data)</h3>
+            {historicalData.length > 0 ? (
+              <div className="flex-1 flex flex-col">
+                <div className="flex-1 flex items-end">
+                  <SparklineChart data={historicalData} />
+                </div>
+                <div className="flex justify-between text-xs text-slate-500 mt-2">
+                  <span>{historicalData[0]?.date ? new Date(historicalData[0].date).toLocaleDateString() : ''}</span>
+                  <span>{historicalData.length} data points</span>
+                  <span>{historicalData[historicalData.length - 1]?.date ? new Date(historicalData[historicalData.length - 1].date).toLocaleDateString() : ''}</span>
+                </div>
+                <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-slate-800">
+                  <div className="text-center">
+                    <div className="text-xs text-slate-500">Lowest</div>
+                    <div className="text-sm font-semibold text-red-400">
+                      ₹{Math.min(...historicalData.map(d => d.price)).toFixed(2)}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-slate-500">Average</div>
+                    <div className="text-sm font-semibold text-amber-400">
+                      ₹{(historicalData.reduce((a, b) => a + b.price, 0) / historicalData.length).toFixed(2)}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-slate-500">Highest</div>
+                    <div className="text-sm font-semibold text-emerald-400">
+                      ₹{Math.max(...historicalData.map(d => d.price)).toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="text-slate-400 mb-2">No historical chart data available</div>
+                  <div className="text-sm text-slate-500">Chart data will appear as alerts are generated</div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -262,6 +363,16 @@ export default function StockDetailPage() {
                   <span className="text-slate-500 text-sm">
                     Strength: {(alert.signal_strength * 100).toFixed(0)}%
                   </span>
+                  {alert.stop_loss && (
+                    <span className="text-xs px-2 py-1 bg-red-500/20 text-red-400 rounded">
+                      SL: {alert.stop_loss}
+                    </span>
+                  )}
+                  {alert.target && (
+                    <span className="text-xs px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded">
+                      TGT: {alert.target}
+                    </span>
+                  )}
                 </div>
               </div>
             ))}

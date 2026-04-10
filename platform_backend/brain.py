@@ -1,7 +1,9 @@
 import base64
 import time
 from openai import OpenAI
-from .config import NVIDIA_NIM_API_KEY, NIM_BASE_URL, NIM_MODEL, FOCUS_KEYWORDS
+from .config import (
+    NVIDIA_NIM_API_KEY, NIM_BASE_URL, NIM_MODEL, MODEL_CONFIG
+), FOCUS_KEYWORDS
 
 class AIAnalyzer:
     def __init__(self):
@@ -14,12 +16,16 @@ class AIAnalyzer:
         with open(image_path, "rb") as image_file:
             return base64.b64encode(image_file.read()).decode('utf-8')
 
-    def _call_nim_with_retry(self, messages, max_tokens=800, temperature=0.2, max_retries=3, retry_delay=30):
-        """Call NVIDIA NIM API with retry logic."""
+    def _call_nim_with_retry(self, messages, max_tokens=800, temperature=0.2, max_retries=3, retry_delay=30, model_key='market_summary'):
+        """Call NVIDIA NIM API with retry logic and model selection."""
+        # Use appropriate model based on task type
+        model = MODEL_CONFIG.get(model_key, NIM_MODEL)
+        print(f"Using model '{model}' for task '{model_key}'")
+
         for attempt in range(max_retries):
             try:
                 response = self.client.chat.completions.create(
-                    model=NIM_MODEL,
+                    model=model,
                     messages=messages,
                     max_tokens=max_tokens,
                     temperature=temperature
@@ -58,6 +64,7 @@ class AIAnalyzer:
     def analyze_india_market(self, india_data, image_path=None, dynamic_focus_areas=None):
         """
         Analyzes India-specific market data with dedicated sections.
+        Uses stock_analysis model for financial focused analysis.
         """
         content = [
             {"type": "text", "text": self._build_india_prompt(india_data, dynamic_focus_areas)}
@@ -73,12 +80,14 @@ class AIAnalyzer:
         return self._call_nim_with_retry(
             messages=[{"role": "user", "content": content}],
             max_tokens=800,
-            temperature=0.2
+            temperature=0.2,
+            model_key='stock_analysis'
         )
-    
+
     def analyze_us_market(self, us_data, image_path=None, dynamic_focus_areas=None):
         """
         Analyzes US/International market data.
+        Uses stock_analysis model for financial focused analysis.
         """
         content = [
             {"type": "text", "text": self._build_us_prompt(us_data, dynamic_focus_areas)}
@@ -94,7 +103,8 @@ class AIAnalyzer:
         return self._call_nim_with_retry(
             messages=[{"role": "user", "content": content}],
             max_tokens=800,
-            temperature=0.2
+            temperature=0.2,
+            model_key='stock_analysis'
         )
     
     def analyze_daily_summary(self, research_data):
@@ -520,7 +530,9 @@ Provide ONLY the Telegram message, no other text.
                                 'signal': signal.get('signal', 'NEUTRAL').upper(),
                                 'reasoning': signal.get('reasoning', signal.get('reason', '')),
                                 'focus_areas': signal.get('focus_areas', signal.get('tags', [])),
-                                'confidence': signal.get('confidence', 0.7)
+                                'confidence': signal.get('confidence', 0.7),
+                                'stop_loss': signal.get('stop_loss'),
+                                'target': signal.get('target_price', signal.get('target'))
                             })
                     return signals
             except json.JSONDecodeError:

@@ -8,13 +8,23 @@ TELEGRAM_API_ID = int(os.getenv("TELEGRAM_API_ID", 0))
 TELEGRAM_API_HASH = os.getenv("TELEGRAM_API_HASH", "")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_ALERT_CHAT_ID = int(os.getenv("TELEGRAM_ALERT_CHAT_ID", 0))
+ENABLE_TELEGRAM_ALERTS = os.getenv("ENABLE_TELEGRAM_ALERTS", "True").lower() == "true"
 TELEGRAM_SESSION_NAME = os.getenv("TELEGRAM_SESSION_NAME", "session")
 TELEGRAM_ALLOWED_CHATS = [int(x) for x in os.getenv("TELEGRAM_ALLOWED_CHAT_IDS", "").split(",") if x]
 
 # AI
 NVIDIA_NIM_API_KEY = os.getenv("NVIDIA_NIM_API_KEY", "")
 NIM_BASE_URL = "https://integrate.api.nvidia.com/v1"
-NIM_MODEL = "meta/llama-3.2-11b-vision-instruct"
+NILLM_MODEL = "meta/llama-3.1-405b-instruct"
+
+# Model configurations for different use cases (NVIDIA NIM models)
+MODEL_CONFIG = {
+    'market_summary': "meta/llama-3.1-405b-instruct",  # Complex reasoning for market summaries
+    'stock_analysis': "nvidia/nemotron-4-340b-instruct",  # Financial focused analysis
+    'signal_extraction': "meta/llama-3.1-8b-instruct",  # Fast, structured output
+    'news_summarization': "google/gemma-2-9b-it",  # Quick summarization
+    'technical_analysis': "meta/llama-3.3-70b-instruct",  # Technical analysis
+}
 
 # Supabase
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")

@@ -8,7 +8,7 @@ from .config import (
     TELEGRAM_BOT_TOKEN, TELEGRAM_SESSION_NAME,
     TELEGRAM_ALLOWED_CHATS, EVALUATION_INTERVAL_MINS,
     INCLUDE_INTERNATIONAL, MARKET_OPEN, MARKET_CLOSE,
-    FOCUS_KEYWORDS
+    FOCUS_KEYWORDS, ENABLE_TELEGRAM_ALERTS
 )
 from .researcher import MarketResearcher
 from .brain import AIAnalyzer
@@ -273,7 +273,11 @@ class MarketMonitor:
 
     async def send_raw_alert(self, text, title):
         """Dispatch raw text signals with intelligent message splitting at section boundaries."""
-        from .config import TELEGRAM_ALERT_CHAT_ID
+        from .config import TELEGRAM_ALERT_CHAT_ID, ENABLE_TELEGRAM_ALERTS
+        
+        if not ENABLE_TELEGRAM_ALERTS:
+            print(f"[TELEGRAM DISABLED] Would send: {title}")
+            return
         
         # Split message if it exceeds Telegram's 4096 character limit
         # We use a safe margin of 4000 and split at section boundaries
