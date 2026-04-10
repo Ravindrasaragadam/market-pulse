@@ -231,3 +231,135 @@ export async function GET() {
     );
   }
 }
+
+// POST /api/watchlist - Add a stock to watchlist
+export async function POST(request: Request) {
+  try {
+    const { symbol, priority = 5, notes = '' } = await request.json();
+
+    if (!symbol) {
+      return NextResponse.json(
+        { error: 'Symbol required' },
+        { status: 400 }
+      );
+    }
+
+    const normalizedSymbol = symbol.toUpperCase().trim();
+
+    // Check if stock exists in stock_symbols
+    const { data: stockData, error: stockError } = await supabase
+      .from('stock_symbols')
+      .select('symbol')
+      .eq('symbol', normalizedSymbol)
+      .single();
+
+    // If stock doesn't exist, add it
+    if (stockError || !stockData) {
+      const market = detectMarket(normalizedSymbol);
+      const { error: insertStockError } = await supabase
+        .from('stock_symbols')
+        .insert({
+          symbol: normalizedSymbol,
+          name: normalizedSymbol,
+          exchange: market === 'INDIA' ? 'NSE' : 'NYSE',
+          market: market,
+          is_active: true,
+        });
+
+      if (insertStockError) {
+        console.error('Error adding stock:', insertStockError);
+        return NextResponse.json(
+          { error: 'Failed to add stock to database' },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Check if already in watchlist
+    const { data: existingWatchlist } = await supabase
+      .from('user_watchlist')
+      .select('id')
+      .eq('stock_symbol', normalizedSymbol)
+      .eq('is_active', true)
+      .single();
+
+    if (existingWatchlist) {
+      return NextResponse.json({
+        success: true,
+        message: 'Stock already in watchlist',
+        alreadyExists: true,
+      });
+    }
+
+    // Add to watchlist (user_id is handled by RLS or default)
+    const { error: watchlistError } = await supabase
+      .from('user_watchlist')
+      .insert({
+        stock_symbol: normalizedSymbol,
+        priority,
+        notes,
+        is_active: true,
+      });
+
+    if (watchlistError) {
+      console.error('Watchlist insert error:', watchlistError);
+      return NextResponse.json(
+        { error: 'Failed to add to watchlist' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Added to watchlist',
+      symbol: normalizedSymbol,
+    });
+
+  } catch (error) {
+    console.error('Watchlist POST error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE /api/watchlist - Remove from watchlist
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const symbol = searchParams.get('symbol');
+
+    if (!symbol) {
+      return NextResponse.json(
+        { error: 'Symbol required' },
+        { status: 400 }
+      );
+    }
+
+    const { error } = await supabase
+      .from('user_watchlist')
+      .update({ is_active: false })
+      .eq('stock_symbol', symbol.toUpperCase());
+
+    if (error) {
+      console.error('Delete error:', error);
+      return NextResponse.json(
+        { error: 'Failed to remove from watchlist' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Removed from watchlist',
+    });
+
+  } catch (error) {
+    console.error('Watchlist DELETE error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

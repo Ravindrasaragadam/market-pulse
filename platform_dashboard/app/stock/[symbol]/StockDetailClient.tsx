@@ -75,6 +75,56 @@ export default function StockDetailClient() {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [relatedStocks, setRelatedStocks] = useState<string[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [isInWatchlist, setIsInWatchlist] = useState(false);
+  const [watchlistLoading, setWatchlistLoading] = useState(false);
+
+  // Check if stock is in watchlist
+  const checkWatchlistStatus = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_watchlist')
+        .select('id')
+        .eq('stock_symbol', symbol.toUpperCase())
+        .eq('is_active', true)
+        .single();
+
+      setIsInWatchlist(!!data && !error);
+    } catch (error) {
+      console.error('Watchlist check error:', error);
+    }
+  }, [symbol]);
+
+  // Toggle watchlist status
+  const toggleWatchlist = async () => {
+    setWatchlistLoading(true);
+    try {
+      if (isInWatchlist) {
+        // Remove from watchlist
+        const response = await fetch(`/api/watchlist?symbol=${symbol}`, {
+          method: 'DELETE',
+        });
+        
+        if (response.ok) {
+          setIsInWatchlist(false);
+        }
+      } else {
+        // Add to watchlist
+        const response = await fetch('/api/watchlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ symbol, priority: 5 }),
+        });
+        
+        if (response.ok) {
+          setIsInWatchlist(true);
+        }
+      }
+    } catch (error) {
+      console.error('Watchlist toggle error:', error);
+    } finally {
+      setWatchlistLoading(false);
+    }
+  };
 
   // Fetch real-time price
   const fetchPrice = useCallback(async () => {
@@ -225,6 +275,7 @@ export default function StockDetailClient() {
         fetchAIAnalysis(),
         fetchNews(),
         fetchStockInfo(),
+        checkWatchlistStatus(),
       ]);
       setLoading(false);
     };
