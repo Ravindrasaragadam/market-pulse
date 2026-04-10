@@ -8,6 +8,7 @@ interface StockCardProps {
   symbol: string;
   price: number;
   change: number;
+  changePercent?: number;
   signal: "BUY" | "SELL" | "NEUTRAL";
   sparklineData?: number[];
   fundamentals?: {
@@ -30,6 +31,7 @@ export default function StockCard({
   symbol, 
   price, 
   change, 
+  changePercent,
   signal, 
   sparklineData = [],
   fundamentals = {},
@@ -51,8 +53,9 @@ export default function StockCard({
   };
 
   // Premium change colors
-  const changeColor = change >= 0 ? "text-emerald-400" : "text-rose-400";
-  const changePrefix = change >= 0 ? "+" : "";
+  const displayChange = changePercent !== undefined ? changePercent : change;
+  const changeColor = displayChange >= 0 ? "text-emerald-400" : "text-rose-400";
+  const changePrefix = displayChange >= 0 ? "+" : "";
 
   // Count-up animation for price
   useEffect(() => {
@@ -147,7 +150,12 @@ export default function StockCard({
 
       {/* Change */}
       <div className={`text-sm font-semibold mb-3 ${changeColor}`}>
-        {changePrefix}{change.toFixed(2)}%
+        {changePrefix}{Math.abs(displayChange).toFixed(2)}%
+        {change !== 0 && (
+          <span className="text-xs ml-2 opacity-70">
+            ({changePrefix}₹{Math.abs(change).toFixed(2)})
+          </span>
+        )}
       </div>
 
       {/* Sparkline with gradient fill */}

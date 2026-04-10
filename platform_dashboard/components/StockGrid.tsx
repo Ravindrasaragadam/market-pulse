@@ -7,6 +7,7 @@ interface StockGridProps {
     symbol: string;
     price: number;
     change: number;
+    changePercent?: number;
     signal: "BUY" | "SELL" | "NEUTRAL";
     sparklineData?: number[];
     fundamentals?: {
@@ -40,6 +41,7 @@ export default function StockGrid({ stocks }: StockGridProps) {
           symbol={stock.symbol}
           price={stock.price}
           change={stock.change}
+          changePercent={stock.changePercent}
           signal={stock.signal}
           sparklineData={stock.sparklineData}
           fundamentals={stock.fundamentals}

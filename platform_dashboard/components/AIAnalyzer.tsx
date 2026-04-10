@@ -146,17 +146,24 @@ export default function AIAnalyzer({ symbol, onClose }: AIAnalyzerProps) {
         body: JSON.stringify({ symbol })
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Analysis failed');
+        // Handle error response from API
+        throw new Error(data.message || data.error || 'Analysis failed');
       }
 
-      const data = await response.json();
+      // Check if analysis data exists
+      if (!data.analysis) {
+        throw new Error('No analysis data received');
+      }
+
       setResult(data.analysis);
       setIsCached(false);
       // Save to localStorage cache
       saveCachedAnalysis(symbol, data.analysis);
-    } catch (err) {
-      setError('Failed to analyze. Please try again.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to analyze. Please try again.');
     } finally {
       setLoading(false);
     }

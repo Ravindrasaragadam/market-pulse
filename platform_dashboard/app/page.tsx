@@ -18,12 +18,18 @@ interface WatchlistStock {
   latestSignal: string;
   latestReason: string;
   alertCount: number;
+  market: 'INDIA' | 'US';
+  price: number;
+  change: number;
+  changePercent: number;
 }
 
 export default function Dashboard() {
   const [alerts, setAlerts] = useState<any[]>([]);
   const [stocks, setStocks] = useState<any[]>([]);
   const [watchlist, setWatchlist] = useState<WatchlistStock[]>([]);
+  const [indiaStocks, setIndiaStocks] = useState<WatchlistStock[]>([]);
+  const [usStocks, setUsStocks] = useState<WatchlistStock[]>([]);
   const [watchlistSymbols, setWatchlistSymbols] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +37,7 @@ export default function Dashboard() {
   const [sortBy, setSortBy] = useState<string>("date");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [market, setMarket] = useState<"INDIA" | "US">("INDIA");
+  const [stats, setStats] = useState({ total: 0, india: 0, us: 0 });
 
   useEffect(() => {
     async function fetchAlerts() {
@@ -68,17 +75,23 @@ export default function Dashboard() {
       
       if (data.watchlist) {
         setWatchlist(data.watchlist);
+        setIndiaStocks(data.indiaStocks || []);
+        setUsStocks(data.usStocks || []);
+        setStats(data.stats || { total: 0, india: 0, us: 0 });
         setWatchlistSymbols(data.watchlist.map((item: WatchlistStock) => item.symbol));
         
         // Transform watchlist to stock format for StockGrid
+        // Use real prices from the API
         const stockData = data.watchlist.map((item: WatchlistStock) => ({
           symbol: item.symbol,
           name: item.name,
-          price: 0, // Will be fetched from Yahoo/real-time API
-          change: 0,
+          price: item.price || 0,
+          change: item.change || 0,
+          changePercent: item.changePercent || 0,
           signal: item.latestSignal || "NEUTRAL",
           sector: item.sector,
-          alertCount: item.alertCount
+          alertCount: item.alertCount,
+          market: item.market
         }));
         
         setStocks(stockData);
@@ -111,8 +124,8 @@ export default function Dashboard() {
     return 0;
   });
 
-  // Use stocks directly - filtering is now done via search component
-  const displayStocks = stocks;
+  // Filter stocks by selected market
+  const displayStocks = stocks.filter((stock: WatchlistStock) => stock.market === market);
 
   return (
     <main className="min-h-screen bg-slate-950 text-white p-8">
@@ -180,9 +193,12 @@ export default function Dashboard() {
       <div className="mb-8">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-semibold flex items-center gap-2">
-            📈 My Watchlist 
+            📈 {market === 'INDIA' ? '🇮🇳 Indian Stocks' : '🇺🇸 US Stocks'}
             <span className="text-sm font-normal text-slate-400">
-              ({watchlist.length} stocks)
+              ({market === 'INDIA' ? stats.india : stats.us} stocks)
+            </span>
+            <span className="text-xs font-normal text-slate-500 ml-2">
+              (Total: {stats.total})
             </span>
           </h2>
           {watchlist.length === 0 && (
@@ -192,10 +208,14 @@ export default function Dashboard() {
           )}
         </div>
         
-        {watchlist.length === 0 ? (
+        {displayStocks.length === 0 ? (
           <div className="bg-slate-900 border border-slate-800 p-8 rounded-xl text-center">
-            <p className="text-slate-400 mb-4">Your watchlist is empty</p>
-            <p className="text-sm text-slate-500">Use the search above to add stocks</p>
+            <p className="text-slate-400 mb-4">
+              No {market === 'INDIA' ? 'Indian' : 'US'} stocks in your watchlist
+            </p>
+            <p className="text-sm text-slate-500">
+              Use the search above to add {market === 'INDIA' ? 'Indian' : 'US'} stocks
+            </p>
           </div>
         ) : (
           <StockGrid stocks={displayStocks} />

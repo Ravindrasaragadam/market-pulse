@@ -88,13 +88,34 @@ export async function POST(request: Request) {
 
   } catch (error) {
     console.error('AI Analysis error:', error);
-    // Return mock analysis on error
-    return NextResponse.json(getMockAnalysis('UNKNOWN'));
+    // Return error response instead of mock data
+    return NextResponse.json(
+      { 
+        error: 'AI analysis failed',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        analysis: null
+      },
+      { status: 503 }
+    );
   }
 }
 
+function isIndianStock(symbol: string): boolean {
+  // Indian stocks are typically 4+ chars or have .NS/.BO suffix
+  // US stocks are 1-4 uppercase letters
+  if (symbol.endsWith('.NS') || symbol.endsWith('.BO')) return true;
+  if (symbol.endsWith('.US') || symbol.includes('=')) return false; // Commodities like SI=F
+  if (symbol.length <= 4 && /^[A-Z]+$/.test(symbol)) return false; // Likely US stock
+  return true; // Default to Indian for longer symbols
+}
+
 function buildAnalysisPrompt(symbol: string): string {
-  return `Analyze the Indian stock ${symbol} for a short-term trading decision.
+  const isIndian = isIndianStock(symbol);
+  const market = isIndian ? 'Indian' : 'US';
+  const indexRef = isIndian ? 'Nifty 50' : 'S&P 500';
+  const exchange = isIndian ? 'NSE/BSE' : 'NYSE/NASDAQ';
+  
+  return `Analyze the ${market} stock ${symbol} listed on ${exchange} for a short-term trading decision.
 
 Provide a JSON response with this exact structure:
 {
@@ -107,11 +128,12 @@ Provide a JSON response with this exact structure:
 }
 
 Consider:
-- Recent price momentum and technical indicators
-- Sector trends in the Indian market
-- Overall market sentiment (Nifty 50 direction)
-- Volume and liquidity
-- Risk-reward ratio
+- Recent price momentum and technical indicators (RSI, MACD, moving averages)
+- Sector trends in the ${market} market
+- Overall market sentiment (${indexRef} direction)
+- Volume and liquidity patterns
+- Risk-reward ratio based on support/resistance levels
+- Recent news sentiment if available
 
 Be objective and data-driven. Provide only the JSON, no additional text.`;
 }

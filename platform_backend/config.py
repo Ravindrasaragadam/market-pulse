@@ -18,12 +18,13 @@ NIM_BASE_URL = "https://integrate.api.nvidia.com/v1"
 NIM_MODEL = "meta/llama-3.1-405b-instruct"
 
 # Model configurations for different use cases (NVIDIA NIM models)
+# NOTE: Use models available on your NVIDIA NIM account. Check https://build.nvidia.com
 MODEL_CONFIG = {
     'market_summary': "meta/llama-3.1-405b-instruct",  # Complex reasoning for market summaries
-    'stock_analysis': "nvidia/nemotron-4-340b-instruct",  # Financial focused analysis
+    'stock_analysis': "meta/llama-3.1-405b-instruct",  # Financial analysis (fallback from nemotron which may not be available)
     'signal_extraction': "meta/llama-3.1-8b-instruct",  # Fast, structured output
-    'news_summarization': "google/gemma-2-9b-it",  # Quick summarization
-    'technical_analysis': "meta/llama-3.3-70b-instruct",  # Technical analysis
+    'news_summarization': "meta/llama-3.1-8b-instruct",  # Quick summarization (fallback from gemma)
+    'technical_analysis': "meta/llama-3.1-405b-instruct",  # Technical analysis (fallback)
 }
 
 # Supabase
