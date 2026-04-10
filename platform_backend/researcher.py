@@ -23,31 +23,32 @@ class MarketResearcher:
         for symbol in symbols:
             if not symbol: continue
             try:
-                # For Indian market, use .NS suffix
-                # For US market, use raw symbol
-                if not self.include_international:
-                    # India only - always try .NS first
-                    ticker_sym = f"{symbol}.NS"
-                    ticker = yf.Ticker(ticker_sym)
-                    data = ticker.history(period="1d")
-
-                    if data.empty:
-                        # Try raw symbol as fallback
-                        ticker_sym = symbol
+                data = None
+                exchange_found = None
+                
+                # Try different exchange suffixes
+                suffixes = ['.NS', '.BO', '']  # NSE, BSE, raw
+                
+                for suffix in suffixes:
+                    try:
+                        ticker_sym = f"{symbol}{suffix}" if suffix else symbol
                         ticker = yf.Ticker(ticker_sym)
                         data = ticker.history(period="1d")
-                else:
-                    # International/US - try raw symbol first, then .NS if fails
-                    ticker_sym = symbol
-                    ticker = yf.Ticker(ticker_sym)
-                    data = ticker.history(period="1d")
-
-                    if data.empty and "." not in symbol:
-                        ticker_sym = f"{symbol}.NS"
-                        ticker = yf.Ticker(ticker_sym)
-                        data = ticker.history(period="1d")
-
-                if not data.empty:
+                        
+                        if not data.empty:
+                            # Map suffix to exchange name
+                            if suffix == '.NS':
+                                exchange_found = 'NSE'
+                            elif suffix == '.BO':
+                                exchange_found = 'BSE'
+                            else:
+                                exchange_found = 'UNKNOWN'
+                            print(f"Found data for {symbol} on {exchange_found}")
+                            break
+                    except Exception as e:
+                        continue
+                
+                if data is not None and not data.empty:
                     change = ((data['Close'].iloc[-1] - data['Open'].iloc[-1]) / data['Open'].iloc[-1]) * 100
                     stats = {
                         "symbol": symbol,
@@ -56,11 +57,34 @@ class MarketResearcher:
                     }
                     if not filter_significant or abs(change) >= 2.0:
                         results.append(stats)
+                    
+                    # Update database with correct exchange if found and different
+                    if exchange_found and self.db:
+                        self._update_stock_exchange(symbol, exchange_found)
                 else:
                     print(f"No price data found for {symbol}")
             except Exception as e:
                 print(f"Error fetching price for {symbol}: {e}")
         return results
+    
+    def _update_stock_exchange(self, symbol, exchange):
+        """Update the exchange info in database for a stock symbol."""
+        try:
+            if not self.db or not self.db.client:
+                return
+            
+            # Check current exchange in database
+            response = self.db.client.table('stock_symbols').select('exchange').eq('symbol', symbol).execute()
+            
+            if response.data:
+                current_exchange = response.data[0].get('exchange')
+                # Only update if different or empty
+                if current_exchange != exchange:
+                    self.db.client.table('stock_symbols').update({'exchange': exchange}).eq('symbol', symbol).execute()
+                    print(f"Updated exchange for {symbol}: {current_exchange} -> {exchange}")
+        except Exception as e:
+            # Silently fail - exchange update is not critical
+            pass
 
     def get_indian_news(self, filter_sent=True):
         """Scrapes headlines from Economic Times and Business Standard (RSS)."""

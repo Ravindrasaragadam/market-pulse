@@ -72,10 +72,12 @@ class DatabaseManager:
 
         if sent_data:
             try:
-                # Use on_conflict ignore to handle duplicates gracefully
-                self.client.table('sent_news').upsert(sent_data, on_conflict='ignore').execute()
+                # Insert data - duplicates will be ignored due to UNIQUE constraint
+                self.client.table('sent_news').insert(sent_data).execute()
             except Exception as e:
-                print(f"Error marking news as sent: {e}")
+                # Ignore unique constraint violations (23505)
+                if '23505' not in str(e):
+                    print(f"Error marking news as sent: {e}")
 
     def clear_old_sent_news(self, hours=1):
         """Clear sent_news records older than specified hours."""
