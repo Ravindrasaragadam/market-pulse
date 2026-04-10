@@ -2,20 +2,19 @@
 
 **AI-Powered Market Analysis for Indian & US Markets**
 
-Market Pulse is a specialized, zero-cost market intelligence suite that monitors financial markets across Telegram channels and news sources. It uses **NVIDIA NIM (Llama 3.1/Nemotron)** for multi-modal analysis and **Supabase** for persistent data storage with self-learning capabilities.
+Market Pulse is a lightweight, zero-cost market intelligence suite with a self-serving dashboard and a minimal alert service. The dashboard fetches real-time prices and news directly, while GitHub Actions handles only lightweight news polling for alerts.
 
 ## 🌟 Key Features
 
-- **Smart Market Monitoring**: Real-time Telegram listener for chart screenshots and news aggregation
-- **AI-Powered Signals**: BUY/SELL/NEUTRAL suggestions with confidence scores
-- **Multi-Market Support**: Separate analysis for Indian (NSE/BSE) and US markets
-- **Dynamic Watchlists**: Auto-populated based on focus areas and market trends
-- **Smart Model Selection**: Uses appropriate NVIDIA NIM models for different tasks
-- **Real-Time Dashboard**: Premium Next.js interface with watchlist management
-- **Multi-Channel Alerts**: Telegram (fully functional), WhatsApp/Email/Message Queue (extensible)
-- **AI Analysis Caching**: Persistent AI summaries with localStorage caching
-- **Stop Loss & Target Tracking**: AI-extracted levels for each signal
-- **Focus Area Management**: Dynamic focus areas that adapt to market conditions
+- **Real-Time Dashboard**: Fetches live prices from Yahoo Finance, news from RSS feeds
+- **AI-Powered Signals**: Direct NVIDIA NIM integration for on-demand stock analysis
+- **Multi-Market Support**: Separate tabs for Indian (NSE/BSE) and US markets
+- **Live News Feed**: Real-time news from Economic Times, MoneyControl, Yahoo Finance
+- **Lightweight Alerts**: GitHub Actions polls news every 15 minutes, sends notifications
+- **Self-Serving Architecture**: Dashboard works independently, no backend dependency
+- **Price Auto-Refresh**: Updates every 60 seconds while you browse
+- **Client-Side AI**: Analysis calls go directly from browser to NVIDIA NIM
+- **Zero Telegram Dependency**: Simple webhook/email alerts, no complex session management
 
 ## 🚀 Quick Start
 
@@ -25,7 +24,7 @@ Market Pulse is a specialized, zero-cost market intelligence suite that monitors
 - **Node.js 18+**
 - **Supabase Account** (Free tier works)
 - **NVIDIA NIM API Key** (from [build.nvidia.com](https://build.nvidia.com))
-- **Telegram API credentials** (for monitoring)
+- **Optional: Webhook URL or Email** (for alerts only)
 
 ### 1. Clone and Setup
 
@@ -34,15 +33,17 @@ git clone <your-repo-url>
 cd market-pulse
 ```
 
-### 2. Backend Setup
+### 2. Backend Setup (Optional)
+
+The backend is **only needed for GitHub Actions alerts**. The dashboard is fully self-serving.
 
 ```bash
 cd platform_backend
-pip install -r requirements.txt
+pip install -r requirements.txt  # Lightweight dependencies only
 
 # Copy and configure environment
 cp .env.example .env
-# Edit .env with your credentials
+# Edit .env with your credentials (only needed for alerts)
 ```
 
 ### 3. Dashboard Setup
@@ -68,16 +69,16 @@ Run the migrations in Supabase SQL Editor (in order):
 
 ### 5. Run Locally
 
-**Backend:**
-```bash
-cd platform_backend
-python -m platform_backend.monitor
-```
-
-**Dashboard:**
+**Dashboard (self-serving):**
 ```bash
 cd platform_dashboard
 npm run dev
+```
+
+**Backend (only for testing alerts):**
+```bash
+cd platform_backend
+python -m platform_backend.alert_service
 ```
 
 See **[Usage Guide](USAGE_GUIDE.md)** for detailed setup and calibration instructions.
@@ -88,17 +89,34 @@ See **[Usage Guide](USAGE_GUIDE.md)** for detailed setup and calibration instruc
 
 | Variable | Description | Required |
 |----------|-------------|----------|
-| `NVIDIA_NIM_API_KEY` | API key for NVIDIA NIM LLM service | Yes |
 | `SUPABASE_URL`, `SUPABASE_KEY` | Supabase database credentials | Yes |
-| `TELEGRAM_API_ID` | From my.telegram.org | Yes |
-| `TELEGRAM_API_HASH` | From my.telegram.org | Yes |
-| `TELEGRAM_BOT_TOKEN` | Telegram bot token for alerts | Yes |
-| `TELEGRAM_ALERT_CHAT_ID` | Chat ID for Telegram alerts | Yes |
-| `TELEGRAM_ALLOWED_CHATS` | Channels to monitor | Yes |
 | `WATCHLIST_SYMBOLS` | Comma-separated stock symbols | Optional |
 | `FOCUS_KEYWORDS` | Comma-separated keywords | Optional |
-| `EVALUATION_INTERVAL_MINS` | Scan interval (default: 30) | Optional |
-| `INCLUDE_INTERNATIONAL` | Enable US markets (default: True) | Optional |
+| `WEBHOOK_URL` | URL for alert webhooks | Optional |
+| `EMAIL_SMTP_SERVER` | SMTP server for email alerts | Optional |
+| `EMAIL_FROM` | Sender email address | Optional |
+| `EMAIL_TO` | Recipient email address | Optional |
+
+### Alert System (Lightweight)
+
+The alert service is minimal and fast:
+
+- **News Polling**: Checks RSS feeds every 15 minutes
+- **Signal Detection**: Keyword-based matching (no heavy AI)
+- **Alert Channels**: Webhook, Email, or both
+- **No Telegram**: Simplified architecture without session management
+
+### Dashboard Self-Sufficiency
+
+The dashboard fetches everything live:
+
+| Feature | Source | Refresh |
+|---------|--------|---------|
+| Stock Prices | Yahoo Finance API | Every 60 seconds |
+| News | RSS Feeds | Every 5 minutes |
+| AI Analysis | NVIDIA NIM (browser → API) | On-demand |
+| Watchlist | Supabase | On load + manual refresh |
+| Charts | TradingView Widgets | Real-time |
 
 ### Dashboard Environment Variables
 
@@ -110,14 +128,11 @@ See **[Usage Guide](USAGE_GUIDE.md)** for detailed setup and calibration instruc
 
 ### AI Model Configuration
 
-Different NVIDIA NIM models are used for different tasks:
+Dashboard calls NVIDIA NIM directly from browser:
 
 | Task | Model | Purpose |
 |------|-------|---------|
-| Market Summary | `meta/llama-3.1-405b-instruct` | Complex reasoning |
-| Stock Analysis | `nvidia/nemotron-4-340b-instruct` | Financial analysis |
-| Signal Extraction | `meta/llama-3.1-8b-instruct` | Fast structured output |
-| News Summarization | `google/gemma-2-9b-it` | Quick summarization |
+| Stock Analysis | `meta/llama-3.1-405b-instruct` | Financial analysis |
 
 ## � Project Structure
 
@@ -165,29 +180,26 @@ market-pulse/
 
 ## 🌐 Deployment
 
-### GitHub Actions (Free Serverless)
+### GitHub Actions (Lightweight Alerts Only)
 
-1. Add all secrets to GitHub (Settings → Secrets → Actions):
-   - All environment variables from `.env`
-   - `TELEGRAM_STRING_SESSION` (generate with `python -c "from telethon..."`)
+The new alert service runs every 15 minutes (not 60), processing only news:
 
-2. Workflow runs automatically every 60 minutes
+1. Add secrets to GitHub (Settings → Secrets → Actions):
+   - `SUPABASE_URL`, `SUPABASE_KEY`
+   - `WATCHLIST_SYMBOLS`, `FOCUS_KEYWORDS`
+   - `WEBHOOK_URL` or email credentials (optional)
+
+2. Workflow runs automatically every 15 minutes
 
 3. Manual trigger: Go to Actions tab → "Market Pulse Scanner" → Run workflow
 
-### Render (Free Tier - Backend)
-
-1. Create Background Worker on [render.com](https://render.com)
-2. Connect GitHub repo
-3. Set Start Command: `python -m platform_backend.monitor`
-4. Add all variables from `.env`
-
-### Vercel (Free Tier - Frontend)
+### Vercel (Dashboard - Self-Serving)
 
 1. Go to [vercel.com](https://vercel.com)
 2. Add New Project → Import Git repo
 3. Framework: Next.js, Root Directory: `platform_dashboard`
-4. Add env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+4. Add env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NVIDIA_NIM_API_KEY`
+5. Deploy - the dashboard works independently!
 
 ## 🛠️ Troubleshooting
 
@@ -197,37 +209,43 @@ market-pulse/
 - Ensure `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are set
 - Restart dev server after adding env vars
 
-**Telegram not receiving messages**
-- Verify `TELEGRAM_BOT_TOKEN` and `TELEGRAM_ALERT_CHAT_ID`
-- Check bot is added to target chat
+**No stock prices showing**
+- Dashboard fetches prices directly from Yahoo Finance
+- Check browser console for API errors
+- Yahoo Finance API may have rate limits
 
-**No stock data showing**
-- Run migration `004_create_stock_symbols_table.sql`
-- Check `WATCHLIST_SYMBOLS` is configured
+**News not loading**
+- Dashboard fetches from RSS feeds directly
+- Some networks may block RSS feeds
+- Check browser console for CORS errors
 
-**NVIDIA NIM API errors**
-- Verify API key at [build.nvidia.com](https://build.nvidia.com)
-- Check rate limits on your NVIDIA account
+**AI Analysis not working**
+- Verify `NVIDIA_NIM_API_KEY` in dashboard env
+- Check browser console for API errors
+- Rate limiting: 5 requests per minute per user
 
 ## 📝 API Reference
 
-### REST Endpoints
+### Dashboard REST Endpoints (Self-Serving)
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/stocks/search?q={query}` | GET | Search stocks by symbol/name |
 | `/api/watchlist` | GET | Get user's watchlist with alerts |
 | `/api/watchlist/add` | POST | Add stock to watchlist |
-| `/api/ai-analyze` | POST | Get AI analysis for symbol |
+| `/api/ai-analyze` | POST | Get AI analysis (calls NVIDIA NIM) |
+| `/api/prices/live?symbols=A,B` | GET | Real-time prices from Yahoo Finance |
+| `/api/news/live?market=india` | GET | Live news from RSS feeds |
 | `/api/commodities` | GET | Get commodities data |
 
-### Supabase Functions
+### Alert Service (GitHub Actions)
 
-| Function | Description |
-|----------|-------------|
-| `search_stocks(query)` | Full-text search on stock symbols |
-| `get_latest_stock_alerts(market, limit)` | Get recent alerts with stock details |
-| `get_watchlist_with_alerts(user_id)` | Get watchlist joined with latest alerts |
+The `alert_service.py` polls news sources and sends alerts:
+- Runs every 15 minutes via GitHub Actions
+- Checks Economic Times, MoneyControl, Yahoo Finance RSS
+- Keyword-based signal detection
+- Saves alerts to Supabase
+- Sends webhook/email notifications
 
 ## 🤝 Contributing
 

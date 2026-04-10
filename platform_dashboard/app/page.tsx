@@ -8,6 +8,7 @@ import StockGrid from "@/components/StockGrid";
 import AISummary from "@/components/AISummary";
 import StockAlerts from "@/components/StockAlerts";
 import StockSearch from "@/components/StockSearch";
+import LiveNews from "@/components/LiveNews";
 
 interface WatchlistStock {
   symbol: string;
@@ -38,6 +39,8 @@ export default function Dashboard() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [market, setMarket] = useState<"INDIA" | "US">("INDIA");
   const [stats, setStats] = useState({ total: 0, india: 0, us: 0 });
+  const [liveNews, setLiveNews] = useState<any[]>([]);
+  const [pricesLoading, setPricesLoading] = useState(false);
 
   useEffect(() => {
     async function fetchAlerts() {
@@ -67,6 +70,38 @@ export default function Dashboard() {
     fetchAlerts();
   }, []);
 
+  // Fetch live prices for symbols
+  const fetchLivePrices = async (symbols: string[]) => {
+    if (symbols.length === 0) return;
+    
+    setPricesLoading(true);
+    try {
+      const response = await fetch(`/api/prices/live?symbols=${symbols.join(',')}`);
+      const data = await response.json();
+      
+      if (data.prices) {
+        setStocks(prevStocks => 
+          prevStocks.map(stock => {
+            const priceData = data.prices[stock.symbol];
+            if (priceData) {
+              return {
+                ...stock,
+                price: priceData.price,
+                change: priceData.change,
+                changePercent: priceData.changePercent
+              };
+            }
+            return stock;
+          })
+        );
+      }
+    } catch (err) {
+      console.error("Price fetch error:", err);
+    } finally {
+      setPricesLoading(false);
+    }
+  };
+
   // Fetch user's watchlist
   const fetchWatchlist = async () => {
     try {
@@ -81,13 +116,12 @@ export default function Dashboard() {
         setWatchlistSymbols(data.watchlist.map((item: WatchlistStock) => item.symbol));
         
         // Transform watchlist to stock format for StockGrid
-        // Use real prices from the API
         const stockData = data.watchlist.map((item: WatchlistStock) => ({
           symbol: item.symbol,
           name: item.name,
-          price: item.price || 0,
-          change: item.change || 0,
-          changePercent: item.changePercent || 0,
+          price: 0, // Will be fetched from live API
+          change: 0,
+          changePercent: 0,
           signal: item.latestSignal || "NEUTRAL",
           sector: item.sector,
           alertCount: item.alertCount,
@@ -95,15 +129,61 @@ export default function Dashboard() {
         }));
         
         setStocks(stockData);
+        
+        // Fetch live prices after setting stocks
+        fetchLivePrices(data.watchlist.map((item: WatchlistStock) => item.symbol));
       }
     } catch (err) {
       console.error("Watchlist fetch error:", err);
     }
   };
 
+  // Fetch live news
+  const fetchLiveNews = async () => {
+    try {
+      const response = await fetch(`/api/news/live?market=${market.toLowerCase()}`);
+      const data = await response.json();
+      
+      if (data.news) {
+        setLiveNews(data.news);
+      }
+    } catch (err) {
+      console.error("News fetch error:", err);
+    }
+  };
+
   useEffect(() => {
     fetchWatchlist();
+    fetchLiveNews();
+    
+    // Refresh prices every 60 seconds
+    const priceInterval = setInterval(() => {
+      if (watchlistSymbols.length > 0) {
+        fetchLivePrices(watchlistSymbols);
+      }
+    }, 60000);
+    
+    // Refresh news every 5 minutes
+    const newsInterval = setInterval(() => {
+      fetchLiveNews();
+    }, 5 * 60 * 1000);
+    
+    return () => {
+      clearInterval(priceInterval);
+      clearInterval(newsInterval);
+    };
   }, []);
+  
+  // Update prices when market tab changes
+  useEffect(() => {
+    const symbolsToFetch = market === 'INDIA' 
+      ? indiaStocks.map(s => s.symbol)
+      : usStocks.map(s => s.symbol);
+    
+    if (symbolsToFetch.length > 0) {
+      fetchLivePrices(symbolsToFetch);
+    }
+  }, [market]);
 
   const handleAddToWatchlist = (symbol: string) => {
     // Refresh watchlist after adding
@@ -225,6 +305,17 @@ export default function Dashboard() {
       {/* Stock-Level Alerts */}
       <div className="mb-8">
         <StockAlerts market={market} />
+      </div>
+
+      {/* Live News Section */}
+      <div className="mb-8">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-semibold">📰 Live News</h2>
+          <span className="text-xs text-slate-500">
+            {liveNews.length > 0 && `Last updated: ${new Date().toLocaleTimeString()}`}
+          </span>
+        </div>
+        <LiveNews news={liveNews} />
       </div>
 
       {/* AI Summary - Market Trends */}

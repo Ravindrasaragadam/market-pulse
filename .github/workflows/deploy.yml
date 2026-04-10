@@ -10,8 +10,11 @@ on:
       - 'platform_backend/**'
       - '.github/workflows/**'
   schedule:
-    - cron: '*/60 * * * *' # Run every 60 minutes
+    - cron: '*/15 * * * *' # Run every 15 minutes for quick news polling
   workflow_dispatch:      # Allow manual trigger from GitHub UI
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # Opt into Node.js 24 for actions (Node 20 deprecated)
 
 jobs:
   run-scanner:
@@ -32,8 +35,8 @@ jobs:
           pip install --upgrade pip
           pip install -r platform_backend/requirements.txt
           
-      - name: Run Market Pulse Scanner
-        timeout-minutes: 30  # Individual step timeout
+      - name: Run Alert Service
+        timeout-minutes: 5  # Quick execution - just news polling
         env:
           TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
           TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
@@ -49,5 +52,4 @@ jobs:
           WATCHLIST_SYMBOLS: ${{ secrets.WATCHLIST_SYMBOLS }}
           FOCUS_KEYWORDS: ${{ secrets.FOCUS_KEYWORDS }}
         run: |
-          mkdir -p downloads
-          python -m platform_backend.monitor
+          python -m platform_backend.alert_service

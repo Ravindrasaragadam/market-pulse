@@ -1,10 +1,14 @@
-telethon
+# Core dependencies for Alert Service (lightweight)
 python-dotenv
 supabase>=2.0.0
-yfinance
-beautifulsoup4
-apscheduler
-lxml
-requests
 httpx>=0.24.0
-openai
+aiohttp>=3.8.0
+
+# Optional: Only needed for full monitor (not used in GitHub Actions)
+# telethon
+# yfinance
+# beautifulsoup4
+# apscheduler
+# lxml
+# requests
+# openai
