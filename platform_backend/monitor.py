@@ -13,7 +13,6 @@ from .config import (
 from .researcher import MarketResearcher
 from .brain import AIAnalyzer
 from .database import DatabaseManager
-import os
 
 class MarketMonitor:
     def __init__(self):
