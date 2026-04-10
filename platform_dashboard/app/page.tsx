@@ -5,7 +5,8 @@ import { supabase } from "@/lib/supabase";
 import CommoditiesCorner from "@/components/CommoditiesCorner";
 import TradingViewWidget from "@/components/TradingViewWidget";
 import StockGrid from "@/components/StockGrid";
-import AISummary from "@/components/AISummary";
+import AIMarketSummary from "@/components/AIMarketSummary";
+import AIStockSummary from "@/components/AIStockSummary";
 import StockAlerts from "@/components/StockAlerts";
 import StockSearch from "@/components/StockSearch";
 import LiveNews from "@/components/LiveNews";
@@ -204,8 +205,9 @@ export default function Dashboard() {
     return 0;
   });
 
-  // Filter stocks by selected market
-  const displayStocks = stocks.filter((stock: WatchlistStock) => stock.market === market);
+  // Filter stocks by selected market (only show India stocks for now per user request)
+  const displayStocks = stocks.filter((stock: WatchlistStock) => stock.market === 'INDIA');
+  const indiaStockSymbols = indiaStocks.map(s => s.symbol);
 
   return (
     <main className="min-h-screen bg-slate-950 text-white p-8">
@@ -318,9 +320,14 @@ export default function Dashboard() {
         <LiveNews news={liveNews} />
       </div>
 
-      {/* AI Summary - Market Trends */}
+      {/* AI Stock Sentiments */}
       <div className="mb-8">
-        <AISummary market={market} />
+        <AIStockSummary stocks={indiaStockSymbols} />
+      </div>
+
+      {/* AI Market Summary */}
+      <div className="mb-8">
+        <AIMarketSummary market={market} />
       </div>
 
       {/* Commodities Corner Widget - Fixed Position */}
