@@ -125,25 +125,26 @@ export default function StockAlerts({ market }: StockAlertsProps) {
   }
 
   return (
-    <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl">
+    <div className="bg-slate-900/80 backdrop-blur-xl border border-amber-500/20 p-6 rounded-xl shadow-[0_0_30px_rgba(245,158,11,0.1)]">
       <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
         🚨 Stock Alerts
-        <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-1 rounded-full">
+        <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded-full border border-amber-500/30">
           {market === "INDIA" ? "India" : "US"}
         </span>
       </h2>
       <div className="space-y-4">
-        {alerts.map((alert) => (
+        {alerts.map((alert, index) => (
           <div
             key={alert.id}
-            className="bg-slate-800 p-4 rounded-lg border-l-4 border-orange-500 hover:border-cyan-500 transition-colors"
+            className="bg-slate-800/80 backdrop-blur-sm p-4 rounded-lg border-l-4 border-amber-500 hover:border-amber-400 hover:bg-slate-800 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(245,158,11,0.15)]"
+            style={{ animationDelay: `${index * 100}ms` }}
           >
             {/* Stock Symbol and Name */}
             <div className="flex items-start justify-between mb-3">
               <div>
                 <Link 
                   href={`/stock/${alert.stock_symbol}`}
-                  className="text-lg font-bold text-white hover:text-cyan-400 transition-colors"
+                  className="text-lg font-bold text-white hover:text-amber-400 transition-colors duration-200"
                 >
                   {alert.stock_symbol}
                 </Link>
@@ -169,7 +170,7 @@ export default function StockAlerts({ market }: StockAlertsProps) {
                 {alert.focus_areas.map((tag, idx) => (
                   <span 
                     key={idx}
-                    className="text-xs bg-slate-700 text-cyan-400 px-2 py-1 rounded"
+                    className="text-xs bg-slate-700/80 text-amber-400 px-2 py-1 rounded border border-amber-500/20"
                   >
                     {tag}
                   </span>
@@ -181,7 +182,7 @@ export default function StockAlerts({ market }: StockAlertsProps) {
             <div className="text-xs text-slate-500 flex justify-between items-center">
               <span>{new Date(alert.created_at).toLocaleString()}</span>
               {alert.signal_strength && (
-                <span className="text-slate-400">
+                <span className="text-amber-400/80 font-medium">
                   Confidence: {Math.round(alert.signal_strength * 100)}%
                 </span>
               )}
