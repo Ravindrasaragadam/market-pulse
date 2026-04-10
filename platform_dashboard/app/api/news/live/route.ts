@@ -30,11 +30,12 @@ async function fetchRSSFeed(url: string, source: string): Promise<NewsItem[]> {
     
     // Parse RSS using regex (lightweight, no XML lib needed)
     const items: NewsItem[] = [];
-    const itemRegex = /<item>(.*?)<\/item>/gs;
-    const titleRegex = /<title>(.*?)<\/title>/i;
-    const linkRegex = /<link>(.*?)<\/link>/i;
-    const pubDateRegex = /<pubDate>(.*?)<\/pubDate>/i;
-    const descRegex = /<description>(.*?)<\/description>/is;
+    // Use [\s\S] instead of . with s flag for cross-browser compatibility
+    const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+    const titleRegex = /<title>([\s\S]*?)<\/title>/i;
+    const linkRegex = /<link>([\s\S]*?)<\/link>/i;
+    const pubDateRegex = /<pubDate>([\s\S]*?)<\/pubDate>/i;
+    const descRegex = /<description>([\s\S]*?)<\/description>/i;
     
     const matches = xml.matchAll(itemRegex);
     
@@ -68,7 +69,7 @@ async function fetchRSSFeed(url: string, source: string): Promise<NewsItem[]> {
 
 function cleanHtml(text: string): string {
   return text
-    .replace(/<![CDATA[(.*?)]]>/gs, '$1')
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
     .replace(/<[^>]+>/g, '')
     .replace(/&quot;/g, '"')
     .replace(/&amp;/g, '&')
